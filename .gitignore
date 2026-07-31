@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Build outputs
+/dist/
+/build/
+/coverage/
+
+# Python caches
+__pycache__/
+*.py[cod]
+
+# Editors and OS
+.vscode/
+.DS_Store
+*.log

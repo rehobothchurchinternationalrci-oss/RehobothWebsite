@@ -1,0 +1,13 @@
+-- ============================================================
+-- ANNULATION DE LA MIGRATION 005 — Départements officiels et programme des cultes
+-- ============================================================
+-- ATTENTION : les départements d'exemple supprimés ne sont pas recréés, et les
+-- horaires personnalisés depuis l'administration ne sont pas restaurés.
+-- ============================================================
+
+-- Rien à annuler automatiquement : ce sont des données de référence.
+-- Pour retirer les départements officiels restés vides :
+-- DELETE FROM departements d
+--  WHERE lower(d.nom) IN ('chorale','protocol','media','social','drama',
+--                         'rédaction','partenaire','interprétariat')
+--    AND NOT EXISTS (SELECT 1 FROM membre_departements WHERE departement_id = d.id);

@@ -1,0 +1,21 @@
+# Python environments
+.venv/
+venv/
+env/
+
+# Python caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+# Local environment files
+.env
+.env.*
+
+# Databases and local artifacts
+*.sqlite3
+*.db
+
+# Uploads
+uploads/

@@ -1,0 +1,179 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 3.9%;
+    --primary: 0 0% 9%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
+    --accent: 0 0% 96.1%;
+    --accent-foreground: 0 0% 9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 0 0% 3.9%;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+    --radius: 0.5rem;
+    --font-heading: ui-sans-serif, system-ui, sans-serif;
+    --font-body: ui-sans-serif, system-ui, sans-serif;
+    --font-display: ui-sans-serif, system-ui, sans-serif;
+    --bordeaux: 212 95% 22%;
+    --bordeaux-dark: 212 95% 15%;
+    --or: 42 95% 48%;
+    --cream: 212 25% 97%;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 0 0% 3.9%;
+    --foreground: 0 0% 98%;
+    /* Cartes/popovers élevés au-dessus du fond pour créer de la profondeur
+       (sinon fond et cartes identiques → aplats noirs indistincts). */
+    --card: 0 0% 9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 9%;
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
+    --accent: 0 0% 14.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 0 0% 83.1%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body;
+  }
+}
+
+/*
+ * Palette neutre de l'admin (design shadcn « blocks », noir/blanc).
+ *
+ * Les pages du dashboard utilisent encore des couleurs de marque codées en
+ * dur (bg-bordeaux, text-or…). Plutôt que de les réécrire une par une, on
+ * remappe les variables de marque vers les tokens neutres UNIQUEMENT dans le
+ * sous-arbre de l'admin (.admin-neutral). Le site public garde son identité
+ * bordeaux/or car il ne porte pas cette classe. Les variables CSS héritant
+ * par cascade, tout `bg-bordeaux`/`text-or` d'une page enfant devient neutre.
+ */
+.admin-neutral {
+  --bordeaux: var(--primary);
+  --bordeaux-dark: var(--primary);
+  --or: var(--muted-foreground);
+  --cream: var(--muted);
+  /* Couleurs du logo de l'église, conservées pour un accent discret
+     (item de nav actif) — non remappées vers le neutre. */
+  --church-blue: 212 90% 45%;
+  --church-gold: 42 95% 50%;
+}
+
+/*
+ * En mode sombre, --primary devient quasi-blanc : les surfaces pleines
+ * bg-bordeaux / dégradés from-bordeaux (texte blanc codé en dur) seraient
+ * illisibles. On les garde donc sur un gris foncé (texte blanc lisible),
+ * ce qui reste neutre.
+ */
+.dark .admin-neutral {
+  --bordeaux: 0 0% 22%;
+  --bordeaux-dark: 0 0% 16%;
+  --or: 0 0% 64%;
+  --cream: 0 0% 15%;
+}
+
+/*
+ * Mode sombre de l'admin — couche de compatibilité.
+ *
+ * Les pages du dashboard utilisent beaucoup de couleurs codées en dur
+ * (bg-white, text-slate-*, border-[#EFEBE4]…). Plutôt que de réécrire ~540
+ * occurrences, on remappe ici ces classes vers les tokens sombres quand
+ * <html> porte la classe `dark` (posée uniquement dans l'admin). Le site
+ * public n'a jamais cette classe, il n'est donc pas touché.
+ */
+.dark .bg-white,
+.dark .bg-white\/70,
+.dark .bg-white\/80,
+.dark .bg-white\/90 { background-color: hsl(var(--card)) !important; }
+
+.dark .bg-\[\#FAF9F6\] { background-color: hsl(var(--background)) !important; }
+
+.dark .bg-gray-50,
+.dark .bg-gray-100,
+.dark .bg-slate-50,
+.dark .bg-slate-50\/30,
+.dark .bg-slate-100\/50,
+.dark .bg-slate-100 { background-color: hsl(var(--muted)) !important; }
+
+.dark .border-\[\#EFEBE4\],
+.dark .border-gray-100,
+.dark .border-gray-150,
+.dark .border-gray-200,
+.dark .border-slate-100,
+.dark .border-slate-200 { border-color: hsl(var(--border)) !important; }
+
+.dark .text-slate-900,
+.dark .text-slate-800,
+.dark .text-slate-700,
+.dark .text-gray-900,
+.dark .text-gray-800,
+.dark .text-gray-700 { color: hsl(var(--foreground)) !important; }
+
+.dark .text-slate-600,
+.dark .text-slate-500,
+.dark .text-slate-400,
+.dark .text-gray-600,
+.dark .text-gray-500,
+.dark .text-gray-400 { color: hsl(var(--muted-foreground)) !important; }
+
+/* Zones de contenu qui doivent respirer comme le fond général */
+.dark .bg-cream { background-color: hsl(var(--muted)) !important; }
