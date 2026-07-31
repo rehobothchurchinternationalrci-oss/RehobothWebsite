@@ -17,7 +17,14 @@ def create_app(test_config=None):
     else:
         app.config.from_object(Config)
         if not app.config.get("TESTING"):
-            Config.validate()
+            # Une config incomplete ne doit pas tuer le process : sinon les workers
+            # gunicorn meurent au boot et la plateforme ne renvoie que des 502, sans
+            # indice sur la cause. On demarre en mode degrade et /api/health/ready
+            # dit precisement ce qui manque.
+            try:
+                Config.validate()
+            except ValueError as e:
+                app.logger.error(f"Configuration incomplete au demarrage : {e}")
 
     register_blueprints(app)
 
