@@ -1,0 +1,14 @@
+# Railway — service backend (Flask).
+# Le build passe par Nixpacks : les dependances viennent de requirements.txt,
+# la version de Python de .python-version, et la commande de demarrage du Procfile.
+
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+# Liveness sans dependance externe : ne fait pas echouer un deploiement quand
+# Supabase est momentanement lent. Voir /api/health/ready pour la chaine complete.
+healthcheckPath = "/api/health"
+healthcheckTimeout = 120
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
