@@ -1,0 +1,38 @@
+server {
+    listen       ${PORT};
+    server_name  _;
+
+    root  /usr/share/nginx/html;
+    index index.html;
+
+    gzip            on;
+    gzip_vary       on;
+    gzip_min_length 1024;
+    gzip_types      text/plain text/css application/javascript application/json
+                    image/svg+xml font/woff font/woff2;
+
+    # Les assets generes par Vite sont hashes : cache long et immuable.
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        try_files $uri =404;
+    }
+
+    # index.html ne doit jamais etre mis en cache, sinon les deploiements
+    # continuent de servir les anciens bundles.
+    location = /index.html {
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+    }
+
+    # Sonde de sante utilisee par Railway.
+    location = /healthz {
+        access_log off;
+        add_header Content-Type text/plain;
+        return 200 "ok";
+    }
+
+    # SPA : toute route inconnue est renvoyee vers index.html (react-router).
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}

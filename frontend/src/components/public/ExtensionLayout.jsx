@@ -83,9 +83,6 @@ export default function ExtensionLayout({ extension, children }) {
                     <p className="text-sm text-bordeaux/80">
                         {extension.address}{extension.meetingTime ? ` · ${extension.meetingTime}` : ""}
                     </p>
-                    <Link to="/" className="inline-block text-sm underline hover:text-bordeaux">
-                        Retour au site principal
-                    </Link>
                     <div className="pt-4 mt-4 border-t border-bordeaux/20 text-xs text-bordeaux/70">
                         &copy; {new Date().getFullYear()} Rehoboth Church International. Tous droits réservés.
                     </div>

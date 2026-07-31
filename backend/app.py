@@ -8,7 +8,7 @@ from utils.response import error_response
 
 def create_app(test_config=None):
     app = Flask(__name__)
-    CORS(app, resources={r"/api/*": {"origins": "*"}})
+    CORS(app, resources={r"/api/*": {"origins": Config.CORS_ORIGINS}})
 
     if test_config:
         app.config.update(test_config)

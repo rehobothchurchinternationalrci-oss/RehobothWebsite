@@ -1,18 +1,15 @@
-# Dependencies
 node_modules/
-
-# Build outputs
 dist/
 build/
 .vite/
 coverage/
 
-# Environment files
 .env
 .env.*
 !.env.example
 
-# Editors and OS
+.git/
+.gitignore
 .vscode/
 .DS_Store
 *.log

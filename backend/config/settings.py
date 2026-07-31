@@ -12,6 +12,14 @@ class Config:
     DEBUG     = FLASK_ENV == "development"
     TESTING   = FLASK_ENV == "testing"
 
+    # Origines autorisees pour les appels navigateur, separees par des virgules.
+    # "*" (defaut) autorise tout le monde ; en production, y mettre l'URL du frontend.
+    CORS_ORIGINS = [
+        origin.strip()
+        for origin in os.getenv("CORS_ORIGINS", "*").split(",")
+        if origin.strip()
+    ] or ["*"]
+
     @classmethod
     def validate(cls):
         missing = []

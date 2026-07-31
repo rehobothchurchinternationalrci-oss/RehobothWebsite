@@ -1,0 +1,28 @@
+# Environnements Python
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+# Secrets et fichiers locaux
+.env
+.env.*
+!.env.example
+
+# Outils de dev / notebooks / scratch
+data.ipynb
+scratch/
+tests/
+docker-compose.yml
+README.md
+
+# Divers
+*.log
+*.sqlite3
+*.db
+.git/
+.gitignore
+static/uploads/
