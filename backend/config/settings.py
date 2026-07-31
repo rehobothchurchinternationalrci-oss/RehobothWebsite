@@ -12,6 +12,12 @@ class Config:
     DEBUG     = FLASK_ENV == "development"
     TESTING   = FLASK_ENV == "testing"
 
+    # URL publique du site (frontend), utilisee pour construire les liens envoyes
+    # par email : reinitialisation de mot de passe, onboarding des chefs, etc.
+    # Ne jamais deduire ces liens de request.host_url : cote Railway cela pointe
+    # vers l'API, pas vers le site.
+    FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
+
     # Origines autorisees pour les appels navigateur, separees par des virgules.
     # "*" (defaut) autorise tout le monde ; en production, y mettre l'URL du frontend.
     CORS_ORIGINS = [

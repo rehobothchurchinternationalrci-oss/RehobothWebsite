@@ -124,7 +124,11 @@ def forgot_password():
         return error_response("Email requis", code=400, status_code=400)
 
     try:
-        _get_auth_client().auth.reset_password_for_email(email)
+        # Sans redirect_to explicite, Supabase retombe sur le "Site URL" du projet
+        # (reste sur localhost tant qu'il n'est pas change), d'ou des liens morts.
+        _get_auth_client().auth.reset_password_for_email(
+            email, {"redirect_to": f"{Config.FRONTEND_URL}/reset-password"}
+        )
         return success_response({"message": "Email de réinitialisation envoyé"})
     except Exception as e:
         return error_response(str(e), code=400, status_code=400)

@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime
 from flask import Blueprint, request, g
+from config.settings import Config
 from extensions import get_supabase
 from middlewares.auth import token_required
 from middlewares.rbac import role_required, ADMIN_ROLES, DEPT_ROLES
@@ -155,7 +156,7 @@ def _integrer_chef(dept: dict, chef_prenom: str, chef_nom: str, chef_email: str)
 
     # Email d'onboarding — un échec d'envoi ne doit pas annuler l'opération
     try:
-        site_url = "http://localhost:5173" if "localhost" in request.host else request.host_url
+        site_url = Config.FRONTEND_URL
         church_name, logo_url = _eglise_info()
         if not logo_url:
             logo_url = f"{request.host_url.rstrip('/')}/static/logo.jpeg"
