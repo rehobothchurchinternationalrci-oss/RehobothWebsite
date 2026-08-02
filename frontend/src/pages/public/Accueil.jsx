@@ -68,7 +68,7 @@ export default function Accueil() {
     }, []);
 
     return (
-        <PublicLayout showNav={false}>
+        <PublicLayout>
             {/* Hero */}
             <section className="relative bg-gradient-to-br from-bordeaux via-bordeaux-dark to-or/20 text-white py-24 sm:py-32 lg:py-48 px-4 sm:px-6 text-center overflow-hidden">
                 <div
