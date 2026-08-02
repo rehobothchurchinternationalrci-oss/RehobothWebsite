@@ -2,7 +2,9 @@ import os
 import time
 from flask import Flask, jsonify
 from flask_cors import CORS
+from werkzeug.middleware.proxy_fix import ProxyFix
 from config.settings import Config
+from extensions import limiter
 from repositories.supabase_repository import get_supabase_client
 from routes import register_blueprints
 from utils.response import error_response
@@ -11,6 +13,14 @@ from utils.response import error_response
 def create_app(test_config=None):
     app = Flask(__name__)
     CORS(app, resources={r"/api/*": {"origins": Config.CORS_ORIGINS}})
+
+    # Railway place l'application derrière son proxy : sans ProxyFix, toutes les
+    # requêtes semblent venir de la même IP interne et le rate limiting
+    # regrouperait tous les visiteurs dans un seul compteur.
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
+    app.config["RATELIMIT_STORAGE_URI"] = Config.RATELIMIT_STORAGE_URI
+    limiter.init_app(app)
 
     if test_config:
         app.config.update(test_config)
@@ -71,6 +81,15 @@ def create_app(test_config=None):
     @app.errorhandler(404)
     def not_found(e):
         return error_response("Endpoint ou ressource introuvable", code=404, status_code=404)
+
+    @app.errorhandler(429)
+    def rate_limited(e):
+        # Sans ce handler, flask-limiter renvoie une page HTML : le frontend
+        # attend l'enveloppe JSON commune à toute l'API.
+        return error_response(
+            "Trop de requêtes. Merci de patienter avant de réessayer.",
+            code=429, status_code=429
+        )
 
     @app.errorhandler(500)
     def server_error(e):

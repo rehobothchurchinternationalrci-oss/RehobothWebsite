@@ -129,14 +129,10 @@ def role_required(*allowed_roles):
             if not getattr(g, "user", None):
                 return error_response("Authentification requise", code=401, status_code=401)
 
-            role = g.user.get("app_role")
-            if role is None:
-                try:
-                    role = get_app_role(g.user.get("id"), g.user.get("email"))
-                except Exception:
-                    return error_response("Impossible de vérifier les permissions", code=503, status_code=503)
-                g.user["app_role"] = role
-                g.user["role"] = role
+            try:
+                role = _resolve_role()
+            except Exception:
+                return error_response("Impossible de vérifier les permissions", code=503, status_code=503)
 
             if role not in allowed_roles:
                 return error_response(

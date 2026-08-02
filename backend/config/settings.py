@@ -18,6 +18,12 @@ class Config:
     # vers l'API, pas vers le site.
     FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
 
+    # Stockage des compteurs de rate limiting. "memory://" suffit pour freiner
+    # bruteforce et spam, mais chaque worker gunicorn compte de son côté et les
+    # compteurs repartent à zéro au redéploiement. Renseigner une URL Redis
+    # (redis://...) pour un décompte exact et partagé entre workers.
+    RATELIMIT_STORAGE_URI = os.getenv("RATELIMIT_STORAGE_URI", "memory://")
+
     # Origines autorisees pour les appels navigateur, separees par des virgules.
     # "*" (defaut) autorise tout le monde ; en production, y mettre l'URL du frontend.
     CORS_ORIGINS = [

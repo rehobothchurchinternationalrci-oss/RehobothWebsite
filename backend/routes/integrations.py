@@ -1,5 +1,6 @@
 import os
-from flask import Blueprint, request
+from flask import Blueprint, g, request
+from extensions import limiter
 from services.email_service import EmailService
 from models.schemas import SendEmailSchema
 from middlewares.auth import resolve_user
@@ -9,26 +10,55 @@ from pydantic import ValidationError
 
 integrations_bp = Blueprint("integrations", __name__, url_prefix="/api/integrations")
 
+# Bornes de taille du formulaire de contact public : évite qu'un appel anonyme
+# ne pousse un email de plusieurs mégaoctets.
+SUJET_MAX = 200
+CORPS_MAX = 5000
+
 
 def _caller_is_staff() -> bool:
-    """Vrai si la requête porte un token valide d'un rôle autorisé à emailer librement."""
+    """
+    Vrai si la requête porte un token valide d'un rôle autorisé à emailer librement.
+
+    Le résultat est mémoïsé sur `g` : la fonction est consultée deux fois par
+    requête (exemption du rate limiting, puis choix du destinataire) et chaque
+    appel coûte sinon deux allers-retours réseau vers Supabase.
+    """
+    cached = getattr(g, "_caller_is_staff", None)
+    if cached is not None:
+        return cached
+
+    resultat = False
     auth_header = request.headers.get("Authorization", "")
-    if not auth_header.startswith("Bearer "):
-        return False
-    try:
-        user = resolve_user(auth_header.split(" ")[1])
-        if not user:
-            return False
-        return get_app_role(user.get("id"), user.get("email")) in DEPT_ROLES
-    except Exception:
-        return False
+    if auth_header.startswith("Bearer "):
+        try:
+            user = resolve_user(auth_header.split(" ")[1])
+            if user:
+                resultat = get_app_role(user.get("id"), user.get("email")) in DEPT_ROLES
+        except Exception:
+            resultat = False
+
+    g._caller_is_staff = resultat
+    return resultat
 
 
 @integrations_bp.route("/send-email", methods=["POST"])
+# Route délibérément ouverte : elle sert le formulaire de contact public.
+# L'anti-relais plus bas force le destinataire, mais sujet et corps restent
+# fournis par l'appelant — sans plafond, la boîte de l'église et le quota
+# Resend étaient épuisables par n'importe qui.
+@limiter.limit("3 per hour; 10 per day", exempt_when=_caller_is_staff)
 def send_email():
     payload = request.get_json() or {}
     try:
         validated = SendEmailSchema(**payload)
+
+        if len(validated.subject) > SUJET_MAX or len(validated.body) > CORPS_MAX:
+            return error_response(
+                f"Message trop long (sujet : {SUJET_MAX} caractères, "
+                f"corps : {CORPS_MAX}).",
+                code=400, status_code=400
+            )
 
         # Try to parse sender name and email from body
         sender_nom = "Inconnu"

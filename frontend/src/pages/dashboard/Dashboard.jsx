@@ -17,6 +17,8 @@ export default function Dashboard() {
     const { user } = useAuthStore();
     const [stats, setStats] = useState({ membres: 0, evenements: 0, dons: 0, predications: 0 });
     const [recentDons, setRecentDons] = useState([]);
+    // null tant qu'on ne sait pas ; false si l'API a refusé la lecture des dons.
+    const [peutVoirDons, setPeutVoirDons] = useState(false);
     const [prochainEv, setProchainEv] = useState([]);
     const [documents, setDocuments] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -43,16 +45,25 @@ export default function Dashboard() {
             }).catch(console.error)
                 .finally(() => setLoading(false));
         } else {
+            // L'annuaire et les dons sont désormais réservés à l'encadrement :
+            // l'API répond 403 aux autres rôles. On neutralise chaque appel
+            // individuellement, sinon un seul refus ferait échouer tout le
+            // Promise.all et viderait le tableau de bord.
             Promise.all([
-                apiClient.entities.Membre.filter({ statut: "membre_actif" }),
-                apiClient.entities.Evenement.list(),
-                apiClient.entities.Don.list("-date", 5),
-                apiClient.entities.Predication.list("-date", 1),
-                apiClient.entities.Evenement.filter({ public: true }, "date_debut", 3),
+                apiClient.entities.Membre.filter({ statut: "membre_actif" }).catch(() => null),
+                apiClient.entities.Evenement.list().catch(() => []),
+                apiClient.entities.Don.list("-date", 5).catch(() => null),
+                apiClient.entities.Predication.list("-date", 1).catch(() => []),
+                apiClient.entities.Evenement.filter({ public: true }, "date_debut", 3).catch(() => []),
             ]).then(([membres, evs, dons, preds, prochains]) => {
-                const totalDons = dons.reduce((s, d) => s + (d.montant || 0), 0);
-                setStats({ membres: membres.length, evenements: evs.length, dons: totalDons, predications: preds.length });
-                setRecentDons(dons);
+                setStats({
+                    membres: membres ? membres.length : null,
+                    evenements: evs.length,
+                    dons: dons ? dons.reduce((s, d) => s + (d.montant || 0), 0) : null,
+                    predications: preds.length,
+                });
+                setRecentDons(dons || []);
+                setPeutVoirDons(dons !== null);
                 setProchainEv(prochains);
             }).catch(console.error)
                 .finally(() => setLoading(false));
@@ -84,11 +95,15 @@ export default function Dashboard() {
         { label: "Membres actifs du département", value: stats.membres, icon: Users, desc: "Membres dans ce département" },
         { label: "Réunions planifiées", value: stats.evenements, icon: Calendar, desc: "Total des réunions" }
     ] : [
-        { label: "Membres actifs", value: stats.membres, icon: Users, desc: "Fidèles enregistrés" },
+        // Une carte dont la donnée est refusée par l'API (403) est retirée,
+        // plutôt qu'affichée à 0 — ce qui laisserait croire à une valeur réelle.
+        stats.membres !== null &&
+            { label: "Membres actifs", value: stats.membres, icon: Users, desc: "Fidèles enregistrés" },
         { label: "Événements", value: stats.evenements, icon: Calendar, desc: "Planifiés cette année" },
-        { label: "Dons récents (top 5)", value: `${stats.dons}€`, icon: DollarSign, desc: "Total des dons récents" },
+        peutVoirDons &&
+            { label: "Dons récents (top 5)", value: `${stats.dons}€`, icon: DollarSign, desc: "Total des dons récents" },
         { label: "Prédications", value: stats.predications, icon: BookOpen, desc: "Médias en ligne" }
-    ];
+    ].filter(Boolean);
 
     return (
         <DashboardLayout>
@@ -219,7 +234,7 @@ export default function Dashboard() {
                                 )}
                             </CardContent>
                         </Card>
-                    ) : (
+                    ) : !peutVoirDons ? null : (
                         <Card className="rounded-xl">
                             <CardHeader>
                                 <CardTitle className="text-base flex items-center gap-2">

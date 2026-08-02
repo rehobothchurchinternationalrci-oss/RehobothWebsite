@@ -35,6 +35,10 @@ membres_bp = create_crud_blueprint(
     url_prefix="/api/membres",
     service=member_service,
     schema=MembreSchema,
+    # Annuaire nominatif (téléphone, adresse, date de naissance, notes) :
+    # réservé à l'encadrement. DEPT_ROLES et non ADMIN_ROLES car les écrans
+    # Départements, Présences et Communication en ont besoin.
+    read_roles=DEPT_ROLES,
     write_roles=ADMIN_ROLES
 )
 
@@ -65,6 +69,8 @@ presences_bp = create_crud_blueprint(
     url_prefix="/api/presences",
     service=presence_service,
     schema=PresenceSchema,
+    # Assiduité nominative des membres.
+    read_roles=DEPT_ROLES,
     write_roles=DEPT_ROLES
 )
 
@@ -73,6 +79,11 @@ dons_bp = create_crud_blueprint(
     url_prefix="/api/dons",
     service=donation_service,
     schema=DonSchema,
+    # Données financières nominatives. Aligné sur la matrice du frontend
+    # (/dashboard/dons). NB : la politique RLS `dons_finance_only` est plus
+    # stricte encore (SUPER_ADMIN + PASTEUR, sans SECRETAIRE) — resserrer ici
+    # relève d'une décision métier, pas d'un correctif technique.
+    read_roles=ADMIN_ROLES,
     write_roles=ADMIN_ROLES
 )
 
@@ -99,6 +110,8 @@ membre_departements_bp = create_crud_blueprint(
     url_prefix="/api/membre-departements",
     service=member_department_service,
     schema=MembreDepartementSchema,
+    # Révèle qui appartient à quel département.
+    read_roles=DEPT_ROLES,
     write_roles=DEPT_ROLES
 )
 
@@ -107,6 +120,8 @@ communications_bp = create_crud_blueprint(
     url_prefix="/api/communications",
     service=communication_service,
     schema=CommunicationSchema,
+    # Historique des envois de masse : contenu et volumétrie.
+    read_roles=DEPT_ROLES,
     write_roles=DEPT_ROLES
 )
 

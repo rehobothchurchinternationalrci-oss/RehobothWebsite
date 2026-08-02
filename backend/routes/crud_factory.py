@@ -6,21 +6,37 @@ from utils.response import success_response, error_response
 
 
 def create_crud_blueprint(name: str, url_prefix: str, service, schema,
-                          public_read=False, write_roles=None, exclude_methods=None):
+                          public_read=False, read_roles=None, write_roles=None,
+                          exclude_methods=None):
     """
     Factory de routes CRUD REST standard, validées par schéma Pydantic.
 
     - public_read=False (défaut) : GET protégés par token_required.
       Ne passer public_read=True que pour les ressources du site vitrine.
+    - read_roles : rôles applicatifs autorisés à LIRE (GET). Si None, tout
+      compte authentifié peut lire.
+      À renseigner impérativement sur les ressources sensibles : sans lui,
+      un simple MEMBRE pouvait lister l'intégralité des dons et l'annuaire
+      complet (téléphone, adresse, date de naissance) via GET /api/dons et
+      GET /api/membres.
     - write_roles : rôles applicatifs autorisés à écrire (POST/PUT/DELETE).
       Si None, toute personne authentifiée peut écrire.
     """
     if exclude_methods is None:
         exclude_methods = []
+    if public_read and read_roles:
+        raise ValueError(
+            f"[{name}] public_read et read_roles sont contradictoires : "
+            "une ressource publique ne peut pas exiger de rôle."
+        )
     bp = Blueprint(name, __name__, url_prefix=url_prefix)
 
     def protect_read(fn):
-        return fn if public_read else token_required(fn)
+        if public_read:
+            return fn
+        if read_roles:
+            fn = role_required(*read_roles)(fn)
+        return token_required(fn)
 
     def protect_write(fn):
         if write_roles:

@@ -3,9 +3,9 @@ import uuid
 from datetime import datetime
 from flask import Blueprint, current_app, request, g
 from config.settings import Config
-from extensions import get_supabase
+from extensions import get_supabase, limiter
 from middlewares.auth import token_required
-from middlewares.rbac import role_required, ADMIN_ROLES, DEPT_ROLES
+from middlewares.rbac import role_required, department_scoped, ADMIN_ROLES
 from utils.response import success_response, error_response
 from services.email_service import EmailService
 
@@ -372,7 +372,7 @@ def set_department_chef(id):
 # ── 2. MANAGE MEMBERS ────────────────────────────────────────────────────────
 @dept_ws_bp.route("/<id>/membres", methods=["GET"])
 @token_required
-@role_required(*DEPT_ROLES)
+@department_scoped(*ADMIN_ROLES)
 def get_dept_membres(id):
     try:
         supabase = get_supabase()
@@ -405,7 +405,7 @@ def get_dept_membres(id):
 
 @dept_ws_bp.route("/<id>/membres", methods=["POST"])
 @token_required
-@role_required(*DEPT_ROLES)
+@department_scoped(*ADMIN_ROLES)
 def add_dept_membre(id):
     payload   = request.get_json() or {}
     membre_id = payload.get("membre_id")
@@ -426,7 +426,7 @@ def add_dept_membre(id):
 
 @dept_ws_bp.route("/<id>/membres/<membre_id>", methods=["DELETE"])
 @token_required
-@role_required(*DEPT_ROLES)
+@department_scoped(*ADMIN_ROLES)
 def delete_dept_membre(id, membre_id):
     try:
         supabase = get_supabase()
@@ -443,7 +443,7 @@ def delete_dept_membre(id, membre_id):
 # ── 3. MEETINGS ───────────────────────────────────────────────────────────────
 @dept_ws_bp.route("/<id>/reunions", methods=["GET"])
 @token_required
-@role_required(*DEPT_ROLES)
+@department_scoped(*ADMIN_ROLES)
 def get_dept_reunions(id):
     try:
         res = get_supabase().table("reunions_departement").select("*").eq("departement_id", id).order("date_reunion", desc=True).execute()
@@ -462,7 +462,7 @@ def get_dept_reunions(id):
 
 @dept_ws_bp.route("/<id>/reunions", methods=["POST"])
 @token_required
-@role_required(*DEPT_ROLES)
+@department_scoped(*ADMIN_ROLES)
 def create_dept_reunion(id):
     payload  = request.get_json() or {}
     titre    = payload.get("titre")
@@ -490,7 +490,7 @@ def create_dept_reunion(id):
 # ── 4. ATTENDANCE ─────────────────────────────────────────────────────────────
 @dept_ws_bp.route("/<id>/reunions/<reunion_id>/presences", methods=["GET"])
 @token_required
-@role_required(*DEPT_ROLES)
+@department_scoped(*ADMIN_ROLES)
 def get_reunion_presences(id, reunion_id):
     try:
         supabase = get_supabase()
@@ -522,7 +522,7 @@ def get_reunion_presences(id, reunion_id):
 
 @dept_ws_bp.route("/<id>/reunions/<reunion_id>/presences", methods=["POST"])
 @token_required
-@role_required(*DEPT_ROLES)
+@department_scoped(*ADMIN_ROLES)
 def save_reunion_presences(id, reunion_id):
     presences_list = (request.get_json() or {}).get("presences", [])
     supabase       = get_supabase()
@@ -552,7 +552,7 @@ def save_reunion_presences(id, reunion_id):
 # ── 5. NOTIFICATIONS ─────────────────────────────────────────────────────────
 @dept_ws_bp.route("/<id>/notifications", methods=["POST"])
 @token_required
-@role_required(*DEPT_ROLES)
+@department_scoped(*ADMIN_ROLES)
 def send_dept_notifications(id):
     payload = request.get_json() or {}
     sujet   = payload.get("sujet")
@@ -613,7 +613,7 @@ def send_dept_notifications(id):
 # ── 6. RAPPORTS ───────────────────────────────────────────────────────────────
 @dept_ws_bp.route("/<id>/rapports", methods=["GET"])
 @token_required
-@role_required(*DEPT_ROLES)
+@department_scoped(*ADMIN_ROLES)
 def get_dept_rapports(id):
     try:
         res = get_supabase().table("rapports_departement").select(
@@ -642,7 +642,7 @@ def get_dept_rapports(id):
 
 @dept_ws_bp.route("/<id>/rapports", methods=["POST"])
 @token_required
-@role_required(*DEPT_ROLES)
+@department_scoped(*ADMIN_ROLES)
 def submit_dept_rapport(id):
     payload = request.get_json() or {}
     mois    = payload.get("mois")
@@ -674,7 +674,7 @@ def submit_dept_rapport(id):
 # ── 7. DOCUMENTS ──────────────────────────────────────────────────────────────
 @dept_ws_bp.route("/<id>/documents", methods=["GET"])
 @token_required
-@role_required(*DEPT_ROLES)
+@department_scoped(*ADMIN_ROLES)
 def get_dept_documents(id):
     try:
         res = get_supabase().table("documents").select(
@@ -701,7 +701,7 @@ def get_dept_documents(id):
 
 @dept_ws_bp.route("/<id>/documents", methods=["POST"])
 @token_required
-@role_required(*DEPT_ROLES)
+@department_scoped(*ADMIN_ROLES)
 def add_dept_document(id):
     payload     = request.get_json() or {}
     nom         = payload.get("nom")
@@ -725,7 +725,7 @@ def add_dept_document(id):
 
 @dept_ws_bp.route("/<id>/documents/<doc_id>", methods=["DELETE"])
 @token_required
-@role_required(*DEPT_ROLES)
+@department_scoped(*ADMIN_ROLES)
 def delete_dept_document(id, doc_id):
     try:
         supabase = get_supabase()
@@ -741,6 +741,9 @@ def delete_dept_document(id, doc_id):
 
 # ── 8. PUBLIC JOIN ────────────────────────────────────────────────────────────
 @dept_ws_bp.route("/<id>/rejoindre", methods=["POST"])
+# Route publique qui INSÈRE dans `membres` : sans plafond, elle permettait de
+# polluer l'annuaire indéfiniment depuis l'extérieur.
+@limiter.limit("5 per hour; 20 per day")
 def public_join_department(id):
     payload   = request.get_json() or {}
     prenom    = payload.get("prenom")

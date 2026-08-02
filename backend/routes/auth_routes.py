@@ -1,7 +1,7 @@
 from flask import Blueprint, request, g
 from supabase import create_client
 from config.settings import Config
-from extensions import get_supabase
+from extensions import get_supabase, limiter
 from middlewares.auth import token_required
 from utils.response import success_response, error_response
 
@@ -85,7 +85,10 @@ def _get_user_profile(user_id: str, email: str, role: str, must_change: bool) ->
 
 
 # ── LOGIN ─────────────────────────────────────────────────────────────────────
+# Le bruteforce était jusqu'ici sans contrainte : combiné aux mots de passe
+# générés « <nom>12345 », n'importe quel compte chef tombait en quelques essais.
 @auth_bp.route("/login", methods=["POST"])
+@limiter.limit("10 per minute; 50 per hour")
 def login():
     payload  = request.get_json() or {}
     email    = payload.get("email")
@@ -117,6 +120,7 @@ def login():
 
 # ── FORGOT PASSWORD ───────────────────────────────────────────────────────────
 @auth_bp.route("/forgot-password", methods=["POST"])
+@limiter.limit("5 per hour")
 def forgot_password():
     payload = request.get_json() or {}
     email   = payload.get("email")
@@ -233,6 +237,7 @@ def _signed_url(bucket: str, path: str) -> str:
 
 
 @auth_bp.route("/upload", methods=["POST"])
+@limiter.limit("30 per hour")
 @token_required
 def upload_file():
     import os
