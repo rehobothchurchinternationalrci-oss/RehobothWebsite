@@ -19,18 +19,26 @@
 -- Le script est REJOUABLE : relancé, il remet à jour le mot de passe et le rôle
 -- sans créer de doublon.
 --
--- ⚠ CHANGEZ l'email et le mot de passe ci-dessous AVANT d'exécuter.
+-- ⚠ SÉCURITÉ — NE JAMAIS COMMITER DE VRAIS IDENTIFIANTS DANS CE FICHIER.
+--
+-- Les deux valeurs ci-dessous sont des placeholders volontairement invalides :
+-- le script s'arrête avec un message explicite si elles ne sont pas remplacées.
+-- Renseignez-les dans votre éditeur SQL Supabase au moment de l'exécution, et
+-- ne réenregistrez jamais le fichier avec les vraies valeurs.
+--
+-- Générer un mot de passe solide :
+--   python -c "import secrets; print(secrets.token_urlsafe(24))"
 -- ============================================================
 
 DO $do$
 DECLARE
-  -- ────────────── À PERSONNALISER ──────────────
-  v_email    text := 'timotheenkwar16@gmail.com';
-  v_password text := 'Rehoboth!2026';
+  -- ────────────── À PERSONNALISER AVANT EXÉCUTION ──────────────
+  v_email    text := 'REMPLACER@example.org';
+  v_password text := 'REMPLACER_PAR_UN_MOT_DE_PASSE_FORT';
   v_prenom   text := 'Super';
   v_nom      text := 'Admin';
   v_role     text := 'SUPER_ADMIN';   -- ou 'PASTEUR'
-  -- ─────────────────────────────────────────────
+  -- ─────────────────────────────────────────────────────────────
 
   v_uid        uuid;
   v_auth_uid   uuid;
@@ -43,8 +51,15 @@ DECLARE
 BEGIN
   v_email := lower(trim(v_email));
 
-  IF v_password IS NULL OR length(v_password) < 8 THEN
-    RAISE EXCEPTION 'Mot de passe trop court (8 caractères minimum).';
+  -- Refus explicite des placeholders : évite de créer un compte SUPER_ADMIN
+  -- avec des identifiants publiés dans le dépôt.
+  IF v_email LIKE 'REMPLACER%' OR v_password LIKE 'REMPLACER%' THEN
+    RAISE EXCEPTION
+      'Renseignez v_email et v_password avant d''exécuter ce script (placeholders détectés).';
+  END IF;
+
+  IF v_password IS NULL OR length(v_password) < 12 THEN
+    RAISE EXCEPTION 'Mot de passe trop court (12 caractères minimum).';
   END IF;
 
   IF NOT EXISTS (SELECT 1 FROM public.roles WHERE id = v_role) THEN

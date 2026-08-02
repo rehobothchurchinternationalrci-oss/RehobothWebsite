@@ -1,6 +1,7 @@
+import secrets
 import uuid
 from datetime import datetime
-from flask import Blueprint, request, g
+from flask import Blueprint, current_app, request, g
 from config.settings import Config
 from extensions import get_supabase
 from middlewares.auth import token_required
@@ -44,6 +45,10 @@ def _eglise_info() -> tuple[str, str]:
     return name, logo_url
 
 
+# 18 octets d'entropie -> 24 caractères url-safe. Le chef ne saisit ce mot de
+# passe qu'une fois : `must_change_password` le force à le remplacer ensuite.
+GENERATED_PASSWORD_BYTES = 18
+
 # Champs du formulaire qui ne sont PAS des colonnes de `departements` : ils
 # décrivent le chef à créer. Les laisser passer dans un INSERT/UPDATE fait
 # échouer la requête (« column chef_prenom does not exist »).
@@ -67,34 +72,43 @@ def _integrer_chef(dept: dict, chef_prenom: str, chef_nom: str, chef_email: str)
     supabase = get_supabase()
     dept_id  = dept["id"]
 
-    chef_email_lower   = chef_email.strip().lower()
-    clean_nom          = "".join(c for c in chef_nom if c.isalnum()).lower() or "user"
-    generated_password = f"{clean_nom}12345"
-
-    from werkzeug.security import generate_password_hash
-    hashed = generate_password_hash(generated_password)
+    chef_email_lower = chef_email.strip().lower()
 
     # Trouver ou créer le user
     u_res = supabase.table("users").select("*").eq("email", chef_email_lower).execute()
+
     if u_res.data:
-        user = u_res.data[0]
-        supabase.table("users").update({
-            "password_hash":        hashed,
-            "must_change_password": True,
-            **({"role": "CHEF_DEPARTEMENT"}
-               if user["role"] not in ("SUPER_ADMIN", "PASTEUR", "SECRETAIRE")
-               else {}),
-        }).eq("id", user["id"]).execute()
+        # Compte déjà existant : on ne touche PAS à son mot de passe. L'ancienne
+        # version réécrivait le hash miroir sans mettre à jour Supabase Auth (qui
+        # est la vraie source de vérité du login) : le mot de passe envoyé par
+        # email ne fonctionnait donc pas. Elle repositionnait aussi
+        # must_change_password sur un compte SUPER_ADMIN existant.
+        # On se contente d'accorder le rôle ; l'intéressé garde ses identifiants.
+        user               = u_res.data[0]
+        compte_cree        = False
+        generated_password = None
+
+        if user["role"] not in ("SUPER_ADMIN", "PASTEUR", "SECRETAIRE"):
+            supabase.table("users").update({"role": "CHEF_DEPARTEMENT"}) \
+                .eq("id", user["id"]).execute()
     else:
-        # Créer aussi dans Supabase Auth
-        try:
-            supabase.auth.admin.create_user({
-                "email":    chef_email_lower,
-                "password": generated_password,
-                "email_confirm": True,
-            })
-        except Exception:
-            pass
+        # Mot de passe imprévisible. L'ancienne formule « <nom>12345 » était
+        # dérivable du nom du responsable, publié sur le site vitrine : n'importe
+        # quel visiteur pouvait deviner les identifiants d'un chef de département.
+        generated_password = secrets.token_urlsafe(GENERATED_PASSWORD_BYTES)
+
+        from werkzeug.security import generate_password_hash
+        hashed = generate_password_hash(generated_password)
+
+        # Supabase Auth est la source de vérité du login (sign_in_with_password) :
+        # un échec ici doit interrompre l'opération, sinon on crée une ligne
+        # `users` orpheline dont personne ne peut jamais se connecter.
+        supabase.auth.admin.create_user({
+            "email":         chef_email_lower,
+            "password":      generated_password,
+            "email_confirm": True,
+        })
+
         u_ins = supabase.table("users").insert({
             "email":                chef_email_lower,
             "password_hash":        hashed,
@@ -103,7 +117,8 @@ def _integrer_chef(dept: dict, chef_prenom: str, chef_nom: str, chef_email: str)
             "email_verified":       True,
             "must_change_password": True,
         }).execute()
-        user = u_ins.data[0]
+        user        = u_ins.data[0]
+        compte_cree = True
 
     user_id = user["id"]
 
@@ -160,26 +175,44 @@ def _integrer_chef(dept: dict, chef_prenom: str, chef_nom: str, chef_email: str)
         church_name, logo_url = _eglise_info()
         if not logo_url:
             logo_url = f"{request.host_url.rstrip('/')}/static/logo.jpeg"
+        login_url = f"{site_url}/login"
 
-        from utils.email_templates import get_onboarding_email_html
-        EmailService.send_email(
-            to=chef_email_lower,
-            subject=f"Vos identifiants de connexion - {church_name}",
-            body=(f"Bonjour {chef_prenom} {chef_nom},\n\n"
-                  f"Département '{dept.get('nom')}' : vous en êtes le responsable.\n"
-                  f"Identifiants :\n"
-                  f"- Email : {chef_email_lower}\n"
-                  f"- Mot de passe : {generated_password}\n\n"
-                  f"Connectez-vous sur {site_url}/login"),
-            html=get_onboarding_email_html(
-                church_name=church_name, logo_url=logo_url,
-                chef_prenom=chef_prenom, chef_nom=chef_nom,
-                dept_name=dept.get("nom"), login_url=f"{site_url}/login",
-                email=chef_email_lower, password=generated_password,
-            ),
-        )
+        if compte_cree:
+            from utils.email_templates import get_onboarding_email_html
+            EmailService.send_email(
+                to=chef_email_lower,
+                subject=f"Vos identifiants de connexion - {church_name}",
+                body=(f"Bonjour {chef_prenom} {chef_nom},\n\n"
+                      f"Département '{dept.get('nom')}' : vous en êtes le responsable.\n"
+                      f"Identifiants :\n"
+                      f"- Email : {chef_email_lower}\n"
+                      f"- Mot de passe provisoire : {generated_password}\n\n"
+                      f"Il vous sera demandé de le changer à la première connexion.\n"
+                      f"Connectez-vous sur {login_url}"),
+                html=get_onboarding_email_html(
+                    church_name=church_name, logo_url=logo_url,
+                    chef_prenom=chef_prenom, chef_nom=chef_nom,
+                    dept_name=dept.get("nom"), login_url=login_url,
+                    email=chef_email_lower, password=generated_password,
+                ),
+            )
+        else:
+            # Compte préexistant : aucun mot de passe à communiquer, il conserve
+            # le sien. On notifie seulement la prise de fonction.
+            EmailService.send_email(
+                to=chef_email_lower,
+                subject=f"Vous êtes responsable de « {dept.get('nom')} » - {church_name}",
+                body=(f"Bonjour {chef_prenom} {chef_nom},\n\n"
+                      f"Vous venez d'être désigné(e) responsable du département "
+                      f"'{dept.get('nom')}'.\n\n"
+                      f"Connectez-vous avec vos identifiants habituels sur {login_url}\n"
+                      f"Mot de passe oublié ? Utilisez « Mot de passe oublié » "
+                      f"sur la page de connexion."),
+            )
     except Exception as mail_err:
-        print(f"Email onboarding error: {mail_err}")
+        current_app.logger.error(
+            "Email onboarding chef (dept=%s) : %s", dept_id, mail_err
+        )
 
     return dept
 

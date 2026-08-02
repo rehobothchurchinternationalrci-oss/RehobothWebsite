@@ -20,3 +20,10 @@ __pycache__/
 
 # Uploads
 uploads/
+
+# Scripts d'administration jetables : suppression de départements, remise à zéro
+# de mots de passe, adresses réelles en dur. Rien de tout cela ne doit être
+# versionné ni partir en production (Railway/Nixpacks construit à partir des
+# fichiers suivis par git et ignore .dockerignore).
+scratch/
+data.ipynb
