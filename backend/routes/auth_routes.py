@@ -1,8 +1,10 @@
 from flask import Blueprint, request, g
+from pydantic import ValidationError
 from supabase import create_client
 from config.settings import Config
 from extensions import get_supabase, limiter
 from middlewares.auth import token_required
+from models.schemas import LoginSchema, EmailOnlySchema
 from utils.response import success_response, error_response
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
@@ -10,6 +12,26 @@ auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
 def _get_auth_client():
     return create_client(Config.SUPABASE_URL, Config.SUPABASE_SERVICE_ROLE_KEY)
+
+
+def _message_identifiants(err: ValidationError) -> str:
+    """
+    Traduit une erreur Pydantic en message lisible pour l'écran de connexion.
+
+    On renvoie volontairement les erreurs de FORMAT (champ manquant, adresse
+    malformée) : elles portent sur ce que l'utilisateur vient de taper et ne
+    disent rien sur l'existence du compte. La distinction « compte inconnu »
+    vs « mot de passe faux » reste, elle, masquée derrière un 401 unique.
+    """
+    champs = {e["loc"][0] for e in err.errors() if e.get("loc")}
+
+    if "email" in champs and "password" in champs:
+        return "Adresse email et mot de passe requis."
+    if "password" in champs:
+        return "Mot de passe requis."
+    if "email" in champs:
+        return "Adresse email invalide. Vérifiez votre saisie (exemple : nom@domaine.com)."
+    return "Requête invalide."
 
 
 def _sync_user(user_id: str, email: str) -> dict:
@@ -90,12 +112,19 @@ def _get_user_profile(user_id: str, email: str, role: str, must_change: bool) ->
 @auth_bp.route("/login", methods=["POST"])
 @limiter.limit("10 per minute; 50 per hour")
 def login():
-    payload  = request.get_json() or {}
-    email    = payload.get("email")
-    password = payload.get("password")
+    payload = request.get_json() or {}
 
-    if not email or not password:
-        return error_response("Email et mot de passe requis", code=400, status_code=400)
+    try:
+        identifiants = LoginSchema(**payload)
+    except ValidationError as e:
+        return error_response(_message_identifiants(e), code=400, status_code=400)
+
+    # Normalisation : les claviers mobiles ajoutent volontiers une majuscule
+    # initiale et une espace finale. Sans ça, « Timothee@Gmail.com » ne
+    # correspondait à rien et l'utilisateur recevait « identifiants
+    # incorrects » alors que son mot de passe était bon.
+    email    = identifiants.email.strip().lower()
+    password = identifiants.password
 
     try:
         client = _get_auth_client()
@@ -123,9 +152,11 @@ def login():
 @limiter.limit("5 per hour")
 def forgot_password():
     payload = request.get_json() or {}
-    email   = payload.get("email")
-    if not email:
-        return error_response("Email requis", code=400, status_code=400)
+
+    try:
+        email = EmailOnlySchema(**payload).email.strip().lower()
+    except ValidationError as e:
+        return error_response(_message_identifiants(e), code=400, status_code=400)
 
     try:
         # Sans redirect_to explicite, Supabase retombe sur le "Site URL" du projet

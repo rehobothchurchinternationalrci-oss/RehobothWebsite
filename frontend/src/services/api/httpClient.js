@@ -54,7 +54,17 @@ class HttpClient {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        const error = new Error(errorData.message || errorData.error || `HTTP ${response.status}`);
+        // L'API renvoie { success, data, error: { message, code } }.
+        // On lisait `errorData.error`, qui est un OBJET : le message affiché à
+        // l'utilisateur valait donc « [object Object] ».
+        const message =
+          errorData?.error?.message ||
+          errorData?.message ||
+          (typeof errorData?.error === 'string' ? errorData.error : null) ||
+          `HTTP ${response.status}`;
+        const error = new Error(
+          typeof message === 'string' ? message : JSON.stringify(message),
+        );
         error.status = response.status;
         error.data = errorData;
         throw error;
@@ -74,8 +84,14 @@ class HttpClient {
         throw timeoutError;
       }
 
-      // Auto-redirect on token expiry
-      if (error.status === 401) {
+      // Auto-redirect on token expiry.
+      //
+      // Uniquement pour les appels authentifiés : un 401 sur une requête
+      // `requiresAuth: false` est un ÉCHEC DE CONNEXION, pas une session
+      // expirée. Rediriger dans ce cas rechargeait la page de login et
+      // effaçait le message d'erreur que le formulaire venait d'afficher —
+      // l'utilisateur voyait son formulaire se vider sans explication.
+      if (error.status === 401 && requiresAuth) {
         localStorage.removeItem(config.auth.tokenKey);
         localStorage.removeItem(config.auth.refreshTokenKey);
         window.location.href = config.auth.loginPath;

@@ -26,7 +26,9 @@ export const useAuthStore = create((set, get) => ({
       });
       return userProfile;
     } catch (err) {
-      const errMsg = err.response?.data?.message || err.message || 'Échec de la connexion';
+      // httpClient (fetch) n'expose pas `err.response` : le message utile est
+      // sur err.message, le détail sur err.data.error.message.
+      const errMsg = err.data?.error?.message || err.message || 'Échec de la connexion';
       set({ error: errMsg, isLoading: false, isAuthenticated: false, user: null });
       get().addNotification({
         id: Date.now(),

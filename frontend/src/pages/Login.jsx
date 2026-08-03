@@ -44,7 +44,14 @@ export default function Login() {
       }
       navigate(from, { replace: true });
     } catch (err) {
-      setError(err.response?.data?.message || err.message || "Identifiants invalides. Veuillez réessayer.");
+      // httpClient est basé sur fetch : il n'existe pas de `err.response`
+      // (forme axios). Le message utile est porté par err.message, et le
+      // détail complet par err.data.
+      setError(
+        err.data?.error?.message ||
+        err.message ||
+        "Identifiants invalides. Veuillez réessayer."
+      );
       setLoading(false);
     }
   };
@@ -68,7 +75,7 @@ export default function Login() {
       }
       navigate(from, { replace: true });
     } catch (err) {
-      setError(err.response?.data?.message || err.message || "Échec de la modification du mot de passe. Veuillez réessayer.");
+      setError(err.data?.error?.message || err.message || "Échec de la modification du mot de passe. Veuillez réessayer.");
     } finally {
       setLoading(false);
     }

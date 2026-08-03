@@ -131,6 +131,25 @@ class CommunicationSchema(BaseSchema):
     departement_nom: Optional[str] = None
     nb_destinataires: Optional[int] = 0
 
+# Authentification
+class LoginSchema(BaseSchema):
+    """
+    Valide le format de l'adresse avant tout appel à Supabase Auth.
+
+    Sans ça, une saisie manifestement invalide (« timothee », « a@b »)
+    partait quand même sur le réseau et revenait en 401 générique
+    « Identifiants incorrects » : l'utilisateur ne savait pas que c'était
+    son adresse, et non son mot de passe, qui posait problème.
+    """
+    email: EmailStr
+    password: str = Field(..., min_length=1)
+
+
+class EmailOnlySchema(BaseSchema):
+    """Mot de passe oublié : seule l'adresse est fournie."""
+    email: EmailStr
+
+
 # Email Integration Send Schema
 class SendEmailSchema(BaseSchema):
     to: str
