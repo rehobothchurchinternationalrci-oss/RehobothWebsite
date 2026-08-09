@@ -42,5 +42,6 @@ consisterait à recasser la connexion des comptes qu'il vient de réparer.
 ## Autres scripts
 
 - `../rehobot.sql` — DDL complet, pour créer une base neuve
-- `../create_admin.sql` — premier compte administrateur
+- `../create_admin.sql` — premier compte administrateur (`SUPER_ADMIN`)
+- `../delete_all_table.sql` — réinitialisation complète (**destructif** : supprime toutes les tables)
 - `../../backend/storage_buckets.sql` — buckets Supabase Storage et politiques
