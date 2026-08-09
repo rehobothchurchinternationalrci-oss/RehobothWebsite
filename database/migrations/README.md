@@ -17,6 +17,7 @@ Dans l'éditeur SQL Supabase, **dans l'ordre des numéros** :
 | 004 | `004_row_level_security_sur_toutes_les_tables.sql` | fonctions d'aide, RLS sur toutes les tables, politiques |
 | 005 | `005_departements_officiels_et_cultes.sql` | départements réels de l'église, programme des cultes |
 | 006 | `006_normalisation_genre_membres.sql` | `genre` ramené à `'M'`/`'F'` + contrainte |
+| 007 | `007_alignement_users_auth.sql` | `public.users.id` réaligné sur `auth.users.id` (comptes de chefs qui ne pouvaient pas se connecter) |
 
 L'ordre compte : 003 dépend de la colonne `created_at` ajoutée en 001, et 004
 s'appuie sur les tables et colonnes mises en place avant.
@@ -34,6 +35,9 @@ en-tête : les anciens chefs de département simultanés (003), les saisies libr
 de `genre` (006) et les départements d'exemple supprimés (005). Ces
 transformations ne sont pas réversibles : l'information d'origine est perdue,
 il n'y a pas moyen de deviner laquelle était la bonne.
+
+Le rollback de 007 ne fait rien, volontairement : revenir en arrière
+consisterait à recasser la connexion des comptes qu'il vient de réparer.
 
 ## Autres scripts
 

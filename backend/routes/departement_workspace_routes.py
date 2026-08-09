@@ -61,18 +61,64 @@ COLONNES_DEPARTEMENT = (
 )
 
 
-def _integrer_chef(dept: dict, chef_prenom: str, chef_nom: str, chef_email: str):
+def _uid_auth_par_email(email: str) -> str | None:
+    """uid Supabase Auth d'une adresse, ou None si elle n'y est pas connue."""
+    supabase = get_supabase()
+    page     = 1
+    while page <= 20:  # garde-fou : ~4000 comptes
+        lot = supabase.auth.admin.list_users(page=page, per_page=200)
+        # selon la version de supabase-py : liste, ou objet portant .users
+        comptes = getattr(lot, "users", lot) or []
+        if not comptes:
+            return None
+        for compte in comptes:
+            if (getattr(compte, "email", "") or "").lower() == email:
+                return str(compte.id)
+        page += 1
+    return None
+
+
+def _compte_auth(email: str, password: str) -> str:
+    """
+    Crée le compte Supabase Auth (source de vérité du login) et renvoie son uid.
+
+    Si l'adresse y est déjà connue — compte créé lors d'une tentative
+    précédente, ligne `users` supprimée depuis —, on réinitialise son mot de
+    passe au lieu d'échouer : sinon la désignation s'interrompt définitivement
+    sur « email already registered ».
+    """
+    supabase = get_supabase()
+    try:
+        res = supabase.auth.admin.create_user({
+            "email":         email,
+            "password":      password,
+            "email_confirm": True,
+        })
+        return str(res.user.id)
+    except Exception:
+        uid = _uid_auth_par_email(email)
+        if not uid:
+            raise
+        supabase.auth.admin.update_user_by_id(uid, {"password": password})
+        return uid
+
+
+def _integrer_chef(dept: dict, chef_prenom: str, chef_nom: str, chef_email: str) -> tuple[dict, dict]:
     """
     Crée (ou réactive) le compte du chef, sa fiche membre, son rattachement au
     département et son mandat, puis lui envoie ses identifiants.
 
     Utilisé à la création ET à la modification d'un département : sans ça, le
     formulaire d'édition proposerait un chef à créer sans que rien ne se passe.
+
+    Renvoie (département, infos) où infos décrit ce qui s'est passé :
+    {"compte_cree": bool, "email_envoye": bool, "avertissement": str | None}.
     """
     supabase = get_supabase()
     dept_id  = dept["id"]
 
     chef_email_lower = chef_email.strip().lower()
+    avertissement    = None
 
     # Trouver ou créer le user
     u_res = supabase.table("users").select("*").eq("email", chef_email_lower).execute()
@@ -91,6 +137,20 @@ def _integrer_chef(dept: dict, chef_prenom: str, chef_nom: str, chef_email: str)
         if user["role"] not in ("SUPER_ADMIN", "PASTEUR", "SECRETAIRE"):
             supabase.table("users").update({"role": "CHEF_DEPARTEMENT"}) \
                 .eq("id", user["id"]).execute()
+
+        # Le login résout le compte applicatif par l'uid Supabase Auth : si les
+        # deux identifiants divergent, l'intéressé ne peut pas se connecter du
+        # tout. On ne peut pas le réparer ici (toutes les tables référencent
+        # users.id) : voir database/migrations/007_alignement_users_auth.sql.
+        uid_auth = _uid_auth_par_email(chef_email_lower)
+        if uid_auth and uid_auth != user["id"]:
+            avertissement = (
+                f"Le compte de {chef_email_lower} est incohérent (identifiant "
+                f"applicatif {user['id']} ≠ identifiant d'authentification "
+                f"{uid_auth}) : la connexion échouera tant que la migration 007 "
+                f"n'a pas été exécutée."
+            )
+            current_app.logger.error(avertissement)
     else:
         # Mot de passe imprévisible. L'ancienne formule « <nom>12345 » était
         # dérivable du nom du responsable, publié sur le site vitrine : n'importe
@@ -103,13 +163,15 @@ def _integrer_chef(dept: dict, chef_prenom: str, chef_nom: str, chef_email: str)
         # Supabase Auth est la source de vérité du login (sign_in_with_password) :
         # un échec ici doit interrompre l'opération, sinon on crée une ligne
         # `users` orpheline dont personne ne peut jamais se connecter.
-        supabase.auth.admin.create_user({
-            "email":         chef_email_lower,
-            "password":      generated_password,
-            "email_confirm": True,
-        })
+        auth_uid = _compte_auth(chef_email_lower, generated_password)
 
+        # `id` explicite : sans lui, PostgreSQL en tire un gen_random_uuid()
+        # sans rapport avec l'uid Supabase Auth. Le login (_sync_user) cherche
+        # la ligne `users` par cet uid, ne la trouve pas, tente d'en insérer une
+        # seconde avec le même email — UNIQUE viole — et le chef se voyait
+        # répondre « identifiants incorrects » avec le bon mot de passe.
         u_ins = supabase.table("users").insert({
+            "id":                   auth_uid,
             "email":                chef_email_lower,
             "password_hash":        hashed,
             "role":                 "CHEF_DEPARTEMENT",
@@ -126,7 +188,9 @@ def _integrer_chef(dept: dict, chef_prenom: str, chef_nom: str, chef_email: str)
     m_res = supabase.table("membres").select("*").eq("email", chef_email_lower).execute()
     if m_res.data:
         membre = m_res.data[0]
-        if not membre.get("user_id"):
+        # Recoller la fiche au bon compte : un user_id périmé casse aussi bien
+        # l'affichage du chef (_chef_nom) que le badge « Chef Responsable ».
+        if membre.get("user_id") != user_id:
             supabase.table("membres").update({"user_id": user_id}).eq("id", membre["id"]).execute()
     else:
         m_ins = supabase.table("membres").insert({
@@ -170,6 +234,7 @@ def _integrer_chef(dept: dict, chef_prenom: str, chef_nom: str, chef_email: str)
         }).execute()
 
     # Email d'onboarding — un échec d'envoi ne doit pas annuler l'opération
+    email_envoye = False
     try:
         site_url = Config.FRONTEND_URL
         church_name, logo_url = _eglise_info()
@@ -177,8 +242,9 @@ def _integrer_chef(dept: dict, chef_prenom: str, chef_nom: str, chef_email: str)
             logo_url = f"{request.host_url.rstrip('/')}/static/logo.jpeg"
         login_url = f"{site_url}/login"
 
+        from utils.email_templates import get_onboarding_email_html
+
         if compte_cree:
-            from utils.email_templates import get_onboarding_email_html
             EmailService.send_email(
                 to=chef_email_lower,
                 subject=f"Vos identifiants de connexion - {church_name}",
@@ -208,13 +274,24 @@ def _integrer_chef(dept: dict, chef_prenom: str, chef_nom: str, chef_email: str)
                       f"Connectez-vous avec vos identifiants habituels sur {login_url}\n"
                       f"Mot de passe oublié ? Utilisez « Mot de passe oublié » "
                       f"sur la page de connexion."),
+                html=get_onboarding_email_html(
+                    church_name=church_name, logo_url=logo_url,
+                    chef_prenom=chef_prenom, chef_nom=chef_nom,
+                    dept_name=dept.get("nom"), login_url=login_url,
+                    email=chef_email_lower, password=None,
+                ),
             )
+        email_envoye = True
     except Exception as mail_err:
         current_app.logger.error(
             "Email onboarding chef (dept=%s) : %s", dept_id, mail_err
         )
 
-    return dept
+    return dept, {
+        "compte_cree":   compte_cree,
+        "email_envoye":  email_envoye,
+        "avertissement": avertissement,
+    }
 
 
 # ── 0. CREATE DEPARTMENT WITH CHEF ──────────────────────────────────────────
@@ -250,7 +327,7 @@ def create_department_with_chef():
         dept_id  = dept["id"]
 
         if chef_email and chef_prenom and chef_nom:
-            dept = _integrer_chef(dept, chef_prenom, chef_nom, chef_email)
+            dept, _infos = _integrer_chef(dept, chef_prenom, chef_nom, chef_email)
 
         return success_response(_dept_payload(dept), status_code=201)
 
@@ -290,7 +367,7 @@ def update_department(id):
         chef_nom    = payload.get("chef_nom")
         chef_email  = payload.get("chef_email")
         if chef_email and chef_prenom and chef_nom:
-            dept = _integrer_chef(dept, chef_prenom, chef_nom, chef_email)
+            dept, _infos = _integrer_chef(dept, chef_prenom, chef_nom, chef_email)
 
         return success_response(_dept_payload(dept))
 
@@ -318,30 +395,48 @@ def set_department_chef(id):
     if not m_res.data:
         return error_response("Membre introuvable", code=404, status_code=404)
 
-    member  = m_res.data[0]
-    user_id = member.get("user_id")
+    member    = m_res.data[0]
+    user_id   = member.get("user_id")
+    email     = (member.get("email") or "").strip()
+    chef_nom  = f"{member.get('prenom')} {member.get('nom')}"
 
-    # La liste propose tous les membres, or la plupart n'ont pas de compte :
-    # ils sont créés depuis l'annuaire, qui n'ouvre pas d'accès. On le crée
-    # donc à la volée et on lui envoie ses identifiants, plutôt que de
-    # refuser la désignation.
-    if not user_id:
-        email = (member.get("email") or "").strip()
-        if not email:
-            return error_response(
-                f"{member.get('prenom')} {member.get('nom')} n'a pas d'adresse email : "
-                "renseignez-la dans sa fiche membre pour pouvoir lui créer un accès.",
-                code=400, status_code=400
-            )
+    # Une désignation doit toujours ouvrir un accès : la liste propose tous les
+    # membres, or la plupart sont créés depuis l'annuaire, qui n'attribue aucun
+    # compte. _integrer_chef couvre les deux cas (création du compte + envoi des
+    # identifiants, ou simple notification si le compte existe déjà) et rattache
+    # au passage le chef à son département.
+    if email:
         try:
-            _integrer_chef(dept_res.data[0], member.get("prenom"), member.get("nom"), email)
-            return success_response({
-                "message":  "Chef de département désigné ; ses identifiants lui ont été envoyés par email",
-                "chef_nom": f"{member.get('prenom')} {member.get('nom')}",
-            })
+            _, infos = _integrer_chef(
+                dept_res.data[0], member.get("prenom"), member.get("nom"), email
+            )
         except Exception as e:
             return error_response(str(e), code=500, status_code=500)
 
+        if infos["avertissement"]:
+            message = f"Chef de département désigné, mais : {infos['avertissement']}"
+        elif not infos["email_envoye"]:
+            message = (f"Chef de département désigné, mais l'email n'a pas pu être "
+                       f"envoyé à {email} : prévenez-le et faites-lui utiliser "
+                       f"« Mot de passe oublié ».")
+        elif infos["compte_cree"]:
+            message = ("Chef de département désigné : son accès a été créé et ses "
+                       f"identifiants envoyés à {email}.")
+        else:
+            message = ("Chef de département désigné : il a été informé par email à "
+                       f"{email} et se connecte avec ses identifiants habituels.")
+
+        return success_response({"message": message, "chef_nom": chef_nom})
+
+    if not user_id:
+        return error_response(
+            f"{chef_nom} n'a pas d'adresse email : renseignez-la dans sa fiche "
+            "membre pour pouvoir lui créer un accès.",
+            code=400, status_code=400
+        )
+
+    # Compte déjà relié mais fiche membre sans email : on désigne quand même,
+    # sans pouvoir le prévenir.
     try:
         # Désactiver l'ancien chef sur CE département
         supabase.table("chef_departement").update({"is_actif": False}).eq("departement_id", id).eq("is_actif", True).execute()
@@ -356,13 +451,22 @@ def set_department_chef(id):
         # Mettre à jour responsable_id du département
         supabase.table("departements").update({"responsable_id": user_id}).eq("id", id).execute()
 
+        # Un chef fait partie de son département
+        md_res = supabase.table("membre_departements").select("id") \
+            .eq("membre_id", membre_id).eq("departement_id", id).execute()
+        if not md_res.data:
+            supabase.table("membre_departements").insert({
+                "membre_id": membre_id, "departement_id": id,
+            }).execute()
+
         # Élever le rôle si nécessaire
         u_res = supabase.table("users").select("role").eq("id", user_id).execute()
         if u_res.data and u_res.data[0]["role"] not in ("SUPER_ADMIN", "PASTEUR", "SECRETAIRE"):
             supabase.table("users").update({"role": "CHEF_DEPARTEMENT"}).eq("id", user_id).execute()
 
         return success_response({
-            "message":  "Chef de département mis à jour avec succès",
+            "message":  ("Chef de département désigné. Sa fiche membre n'a pas "
+                         "d'adresse email : il n'a pas pu être prévenu."),
             "chef_nom": _chef_nom(user_id),
         })
     except Exception as e:

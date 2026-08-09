@@ -66,6 +66,8 @@ export default function DepartementWorkspace({ id: propId, isDashboard = false }
     const [selectedMemberToAdd, setSelectedMemberToAdd] = useState("");
     const [addingMember, setAddingMember] = useState(false);
     const [copiedLink, setCopiedLink] = useState(false);
+    const [promotingId, setPromotingId] = useState(null);
+    const [chefStatus, setChefStatus] = useState(null);
 
     // Tab 2: Réunions & Présences
     const [reunions, setReunions] = useState([]);
@@ -198,6 +200,36 @@ export default function DepartementWorkspace({ id: propId, isDashboard = false }
             alert("Erreur lors de l'ajout du membre");
         } finally {
             setAddingMember(false);
+        }
+    };
+
+    // Désigner un chef ouvre un accès : le backend crée le compte s'il n'existe
+    // pas et envoie ses identifiants. D'où la confirmation explicite.
+    const handleSetChef = async (membre) => {
+        if (!membre.email) {
+            setChefStatus({
+                success: false,
+                message: `${membre.prenom} ${membre.nom} n'a pas d'adresse email : renseignez-la dans sa fiche membre pour pouvoir lui créer un accès.`
+            });
+            return;
+        }
+        if (!confirm(
+            `Désigner ${membre.prenom} ${membre.nom} comme chef responsable de ce département ?\n\n` +
+            `Un accès à cet espace de travail lui sera ouvert et ses identifiants de connexion seront envoyés à ${membre.email}.`
+        )) return;
+
+        setPromotingId(membre.id);
+        setChefStatus(null);
+        try {
+            const res = await apiClient.entities.Departement.setChef(id, membre.id);
+            const data = res?.data ?? res;
+            await Promise.all([loadDeptDetails(), loadMembres()]);
+            setChefStatus({ success: true, message: data?.message || "Chef de département désigné." });
+        } catch (err) {
+            console.error(err);
+            setChefStatus({ success: false, message: err?.message || "Erreur lors de la désignation du chef" });
+        } finally {
+            setPromotingId(null);
         }
     };
 
@@ -444,6 +476,17 @@ export default function DepartementWorkspace({ id: propId, isDashboard = false }
                             </div>
                         </div>
 
+                        {chefStatus && (
+                            <div className={`mb-6 p-4 rounded-xl border text-sm flex items-start gap-2.5 ${chefStatus.success
+                                ? "bg-emerald-50 border-emerald-200 text-emerald-900"
+                                : "bg-destructive/5 border-destructive/20 text-destructive"}`}>
+                                {chefStatus.success
+                                    ? <CheckCircle className="w-4.5 h-4.5 shrink-0 mt-px" />
+                                    : <AlertCircle className="w-4.5 h-4.5 shrink-0 mt-px" />}
+                                <span>{chefStatus.message}</span>
+                            </div>
+                        )}
+
                         <Card className="rounded-xl">
                             <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border">
                                 <div>
@@ -474,7 +517,7 @@ export default function DepartementWorkspace({ id: propId, isDashboard = false }
                                                 <TableHead className="font-bold text-foreground h-12 px-6">Email</TableHead>
                                                 <TableHead className="font-bold text-foreground h-12 px-6">Téléphone</TableHead>
                                                 <TableHead className="font-bold text-foreground h-12 px-6">Statut / Rôle</TableHead>
-                                                <TableHead className="font-bold text-foreground h-12 px-6 text-right w-24"></TableHead>
+                                                <TableHead className="font-bold text-foreground h-12 px-6 text-right w-56"></TableHead>
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
@@ -504,14 +547,32 @@ export default function DepartementWorkspace({ id: propId, isDashboard = false }
                                                     </TableCell>
                                                     <TableCell className="px-6 py-4 text-right">
                                                         {!m.est_chef && (
-                                                            <Button 
-                                                                size="icon" 
-                                                                variant="ghost" 
-                                                                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl"
-                                                                onClick={() => handleRemoveMember(m.id)}
-                                                            >
-                                                                <Trash2 className="w-4.5 h-4.5" />
-                                                            </Button>
+                                                            <div className="flex items-center justify-end gap-1">
+                                                                {isAdmin && (
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="outline"
+                                                                        disabled={promotingId !== null}
+                                                                        className="h-8 rounded-xl text-xs font-semibold"
+                                                                        onClick={() => handleSetChef(m)}
+                                                                        title="Créer son accès et lui confier la gestion du département"
+                                                                    >
+                                                                        {promotingId === m.id ? (
+                                                                            <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Envoi…</>
+                                                                        ) : (
+                                                                            <><UserCheck className="w-3.5 h-3.5 mr-1.5" /> Désigner chef</>
+                                                                        )}
+                                                                    </Button>
+                                                                )}
+                                                                <Button
+                                                                    size="icon"
+                                                                    variant="ghost"
+                                                                    className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl"
+                                                                    onClick={() => handleRemoveMember(m.id)}
+                                                                >
+                                                                    <Trash2 className="w-4.5 h-4.5" />
+                                                                </Button>
+                                                            </div>
                                                         )}
                                                     </TableCell>
                                                 </TableRow>

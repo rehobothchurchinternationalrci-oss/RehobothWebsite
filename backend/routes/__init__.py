@@ -3,6 +3,7 @@ from routes.integrations import integrations_bp
 from routes.auth_routes import auth_bp
 from routes.departement_workspace_routes import dept_ws_bp
 from services.base_service import BaseService
+from services.departement_service import DepartementService
 from middlewares.rbac import ADMIN_ROLES, DEPT_ROLES, EVENT_ROLES, MEDIA_ROLES, SETTINGS_ROLES
 from models.schemas import (
     MembreSchema,
@@ -18,7 +19,7 @@ from models.schemas import (
 
 # Initialize CRUD services
 member_service = BaseService("membres")
-department_service = BaseService("departements")
+department_service = DepartementService()
 event_service = BaseService("evenements")
 presence_service = BaseService("presences")
 donation_service = BaseService("dons")
