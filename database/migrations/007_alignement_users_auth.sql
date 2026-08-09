@@ -12,6 +12,10 @@
 -- (chef_departement, departements.responsable_id, membres.user_id, et toute
 -- autre clé étrangère vers users(id)).
 --
+-- Les triggers miroir de la migration 002 sont coupés pendant l'opération :
+-- renuméroter n'est pas nommer un nouveau responsable, et les laisser réagir
+-- ferait naître le doublon chef_departement que le déplacement heurterait.
+--
 -- Rejouable : peut être exécutée plusieurs fois sans erreur ni doublon.
 -- À exécuter dans l'éditeur SQL Supabase, dans l'ordre des numéros.
 --
@@ -23,11 +27,39 @@ DECLARE
   v_ligne    record;
   v_fk       record;
   v_provisoire text;
+  v_tables   regclass[];
+  v_table    regclass;
+  v_triggers_coupes boolean := false;
+  v_ctids    tid[];
+  v_ctid     tid;
 BEGIN
   IF to_regclass('auth.users') IS NULL THEN
     RAISE NOTICE 'auth.users absent (base hors Supabase) : rien à faire.';
     RETURN;
   END IF;
+
+  SELECT array_agg(DISTINCT c.conrelid::regclass)
+    INTO v_tables
+    FROM pg_constraint c
+   WHERE c.contype   = 'f'
+     AND c.confrelid = 'public.users'::regclass
+     AND array_length(c.conkey, 1) = 1;
+
+  -- Les triggers miroir (migration 002) réagissent aux écritures de références :
+  -- déplacer departements.responsable_id fait naître une ligne chef_departement
+  -- pour le nouvel id, que le déplacement de chef_departement heurte ensuite
+  -- (contrainte UNIQUE(user_id, departement_id)). Renuméroter n'est pas un
+  -- changement de responsable : on coupe la synchronisation le temps de l'opération.
+  BEGIN
+    FOREACH v_table IN ARRAY COALESCE(v_tables, '{}'::regclass[]) LOOP
+      EXECUTE format('ALTER TABLE %s DISABLE TRIGGER USER', v_table);
+    END LOOP;
+    v_triggers_coupes := true;
+  EXCEPTION WHEN insufficient_privilege OR wrong_object_type THEN
+    -- Rôle non propriétaire des tables : les doublons créés par les triggers
+    -- seront absorbés plus bas, au prix de l'historique des lignes déplacées.
+    RAISE NOTICE 'Triggers non désactivables (droits insuffisants) : poursuite en mode tolérant.';
+  END;
 
   FOR v_ligne IN
     EXECUTE $q$
@@ -47,7 +79,8 @@ BEGIN
 
     -- L'email est UNIQUE : on le libère le temps de faire coexister l'ancienne
     -- et la nouvelle ligne, le temps de déplacer les références.
-    v_provisoire := v_ligne.email || '.migration007';
+    -- email est un VARCHAR(255) : on tronque pour que le suffixe tienne.
+    v_provisoire := left(v_ligne.email, 220) || '.migration007';
     UPDATE public.users SET email = v_provisoire WHERE id = v_ligne.ancien_id;
 
     INSERT INTO public.users (id, email, password_hash, role, is_active,
@@ -69,15 +102,37 @@ BEGIN
          AND c.confrelid  = 'public.users'::regclass
          AND array_length(c.conkey, 1) = 1
     LOOP
-      EXECUTE format('UPDATE %s SET %I = $1 WHERE %I = $2',
-                     v_fk.table_source, v_fk.colonne, v_fk.colonne)
-        USING v_ligne.nouvel_id, v_ligne.ancien_id;
+      -- Ligne par ligne : une table peut porter une contrainte d'unicité que le
+      -- nouvel id satisfait déjà (les deux comptes désignent la même personne).
+      -- La ligne du nouvel id fait alors foi, celle de l'ancien est redondante.
+      EXECUTE format('SELECT array_agg(ctid) FROM %s WHERE %I = $1',
+                     v_fk.table_source, v_fk.colonne)
+        INTO v_ctids USING v_ligne.ancien_id;
+
+      FOREACH v_ctid IN ARRAY COALESCE(v_ctids, '{}'::tid[]) LOOP
+        BEGIN
+          EXECUTE format('UPDATE %s SET %I = $1 WHERE ctid = $2',
+                         v_fk.table_source, v_fk.colonne)
+            USING v_ligne.nouvel_id, v_ctid;
+        EXCEPTION WHEN unique_violation THEN
+          EXECUTE format('DELETE FROM %s WHERE ctid = $1', v_fk.table_source)
+            USING v_ctid;
+          RAISE WARNING '% (%) : ligne redondante supprimée pour %, le nouvel id la portait déjà.',
+            v_fk.table_source, v_fk.colonne, v_ligne.email;
+        END;
+      END LOOP;
     END LOOP;
 
     DELETE FROM public.users WHERE id = v_ligne.ancien_id;
 
     RAISE NOTICE 'users % : % -> %', v_ligne.email, v_ligne.ancien_id, v_ligne.nouvel_id;
   END LOOP;
+
+  IF v_triggers_coupes THEN
+    FOREACH v_table IN ARRAY COALESCE(v_tables, '{}'::regclass[]) LOOP
+      EXECUTE format('ALTER TABLE %s ENABLE TRIGGER USER', v_table);
+    END LOOP;
+  END IF;
 END
 $do$;
 
@@ -102,3 +157,13 @@ BEGIN
   END IF;
 END
 $do$;
+
+-- Les triggers miroir ayant été coupés, on vérifie que les deux faces du chef de
+-- département disent toujours la même chose. Doit ne rien renvoyer.
+SELECT d.nom            AS departement,
+       d.responsable_id AS cote_departements,
+       cd.user_id       AS cote_chef_departement
+  FROM departements d
+  LEFT JOIN chef_departement cd
+         ON cd.departement_id = d.id AND cd.is_actif
+ WHERE d.responsable_id IS DISTINCT FROM cd.user_id;
