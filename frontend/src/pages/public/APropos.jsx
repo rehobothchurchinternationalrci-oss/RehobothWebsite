@@ -1,10 +1,15 @@
 import React from "react";
 import PublicLayout from "@/components/public/PublicLayout";
 import { useParametres } from "@/hooks/useParametres";
-import { Heart, Target, BookOpen, Mail, Phone } from "lucide-react";
+import ResponsableCard from "@/components/public/ResponsableCard";
+import { responsables } from "@/data/responsables";
+import { Heart, Target, BookOpen } from "lucide-react";
 
 export default function APropos() {
     const { parametres } = useParametres();
+
+    const enAvant = responsables.filter(r => r.miseEnAvant);
+    const autres = responsables.filter(r => !r.miseEnAvant);
 
     return (
         <PublicLayout>
@@ -40,39 +45,29 @@ export default function APropos() {
                     </div>
                 )}
 
-                {/* Notre Pasteur Fondateur */}
-                <div className="mt-16 border-t border-gray-100 pt-16">
-                    <h2 className="text-3xl font-heading font-bold text-bordeaux mb-4 text-center">Notre Pasteur Fondateur</h2>
-                    <p className="text-gray-500 text-center max-w-xl mx-auto mb-12">
-                        Découvrez le pasteur principal et fondateur dédié à guider et nourrir spirituellement la communauté de Rehoboth Church International.
-                    </p>
+                {/* Nos Responsables */}
+                {responsables.length > 0 && (
+                    <div className="mt-16 border-t border-gray-100 pt-16">
+                        <h2 className="text-3xl font-heading font-bold text-bordeaux mb-4 text-center">Nos Responsables</h2>
+                        <p className="text-gray-500 text-center max-w-xl mx-auto mb-12">
+                            Découvrez l'équipe dédiée à guider et servir spirituellement la communauté de {parametres.nom}.
+                        </p>
 
-                    <div className="max-w-md mx-auto">
-                        {/* Pastor 1 */}
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                            <div className="p-6 text-center">
-                                <div className="w-28 h-28 mx-auto mb-4 rounded-full bg-bordeaux/10 text-bordeaux flex items-center justify-center text-3xl font-bold">
-                                    SM
-                                </div>
-                                <h3 className="font-bold text-lg text-bordeaux mb-1">Pasteur Samuel Marhegane</h3>
-                                <p className="text-sm font-semibold text-gray-500 mb-3">Pasteur Principal & Fondateur</p>
-                                <p className="text-sm text-gray-600 mb-4">
-                                    Leader visionnaire dévoué à l'expansion du Royaume de Dieu et à la formation de disciples passionnés.
-                                </p>
-                                <div className="pt-4 border-t border-gray-100 space-y-2 text-xs text-gray-500">
-                                    <div className="flex items-center justify-center gap-1.5 hover:text-bordeaux transition-colors">
-                                        <Mail className="w-3.5 h-3.5" />
-                                        <a href="mailto:s.marhegane@rehoboth.org">s.marhegane@rehoboth.org</a>
-                                    </div>
-                                    <div className="flex items-center justify-center gap-1.5 hover:text-bordeaux transition-colors">
-                                        <Phone className="w-3.5 h-3.5" />
-                                        <a href="tel:+33123456789">+33 1 23 45 67 89</a>
-                                    </div>
-                                </div>
+                        {enAvant.length > 0 && (
+                            <div className="max-w-sm mx-auto mb-10">
+                                {enAvant.map((responsable) => (
+                                    <ResponsableCard key={responsable.nom} responsable={responsable} enAvant />
+                                ))}
                             </div>
+                        )}
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                            {autres.map((responsable) => (
+                                <ResponsableCard key={responsable.nom} responsable={responsable} />
+                            ))}
                         </div>
                     </div>
-                </div>
+                )}
             </section>
         </PublicLayout>
     );
