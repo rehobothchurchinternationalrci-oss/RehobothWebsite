@@ -6,16 +6,25 @@ import uuid
 # Add backend directory to python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+# Doit etre pose AVANT l'import de config.settings : Config lit FLASK_ENV au
+# chargement du module, et load_dotenv() n'ecrase pas une variable deja
+# presente. Sans cela, /api/health annonce l'environnement du .env local.
+os.environ["FLASK_ENV"] = "testing"
+
 # Mock token_required decorator
 def mock_token_required(f):
     from functools import wraps
     from flask import g
     @wraps(f)
     def decorated(*args, **kwargs):
+        # `app_role` est deja renseigne : sans lui, rbac._resolve_role
+        # interrogerait la vraie table users sur Supabase et la suite de tests
+        # dependrait du reseau.
         g.user = {
             "id": "00000000-0000-0000-0000-000000000000",
             "email": "test@rehoboth.org",
-            "role": "authenticated"
+            "role": "SUPER_ADMIN",
+            "app_role": "SUPER_ADMIN",
         }
         return f(*args, **kwargs)
     return decorated
@@ -104,16 +113,15 @@ def mock_email(monkeypatch):
 
 @pytest.fixture
 def app():
-    app = create_app({
+    # Aucune base locale a creer : l'application ne parle qu'a Supabase via
+    # PostgREST, et SupabaseRepository est remplace plus haut par un double en
+    # memoire. L'ancienne version appelait db.create_all() sur un SQLAlchemy
+    # qui n'existe plus, ce qui faisait echouer toute la suite au setup.
+    return create_app({
         "TESTING": True,
         "DEBUG": False,
         "ENV": "testing",
-        "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:"
     })
-    with app.app_context():
-        from extensions import db
-        db.create_all()
-    yield app
 
 @pytest.fixture
 def client(app):

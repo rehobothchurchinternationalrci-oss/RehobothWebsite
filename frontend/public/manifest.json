@@ -1,0 +1,19 @@
+{
+  "name": "Rehoboth Church International",
+  "short_name": "Rehoboth",
+  "description": "Site de l'église Rehoboth Church International : cultes, événements, prédications et départements.",
+  "lang": "fr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#033569",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    }
+  ]
+}

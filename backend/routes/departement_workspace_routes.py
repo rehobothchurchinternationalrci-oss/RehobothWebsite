@@ -701,7 +701,9 @@ def send_dept_notifications(id):
                 )
                 sent_count += 1
             except Exception as mail_err:
-                print(f"Email error ({email}): {mail_err}")
+                # print() n'arrive pas dans les logs Railway de la meme facon
+                # que le logger applicatif (niveau, horodatage, correlation).
+                current_app.logger.error(f"Envoi email echoue ({email}) : {mail_err}")
 
         supabase.table("communications").insert({
             "sujet": sujet, "contenu": contenu, "destinataires_type": "departement",

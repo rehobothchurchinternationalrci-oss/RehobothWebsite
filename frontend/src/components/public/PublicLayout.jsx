@@ -16,7 +16,7 @@ const ICONES_RESEAUX = {
 
 export default function PublicLayout({ children, showNav = true }) {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-    const { isAuthenticated, user, logout } = useAuth();
+    const { isAuthenticated, logout } = useAuth();
     const location = useLocation();
     const { parametres, adresseComplete, reseaux } = useParametres();
 

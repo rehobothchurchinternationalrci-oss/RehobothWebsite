@@ -10,8 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { 
-    Plus, Edit, Trash2, BookOpen, Play, User, Sparkles, 
-    Calendar, Video, AudioLines, Bookmark, Globe, FileText, Loader2
+    Plus, Edit, Trash2, BookOpen, Play, User, 
+    Calendar, Video, AudioLines, Bookmark, Globe, Loader2
 } from "lucide-react";
 import moment from "moment";
 

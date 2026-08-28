@@ -9,8 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import {
-    Send, MessageSquare, Clock, Sparkles, SendHorizontal,
-    MailCheck, Users, Megaphone, Loader2, Mail
+    Send, Clock, SendHorizontal, Users, Loader2, Mail
 } from "lucide-react";
 import moment from "moment";
 import { useAuthStore } from "@/store/authStore";
@@ -103,7 +102,7 @@ export default function Communication() {
             });
 
             // Reset form (keeping department attributes pre-selected if chef)
-            setForm(prev => ({
+            setForm(() => ({
                 ...EMPTY_FORM,
                 destinataires_type: isChef ? "departement" : "tous_actifs",
                 departement_id: isChef ? deptId : ""

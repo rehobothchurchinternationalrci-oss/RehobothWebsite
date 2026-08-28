@@ -11,8 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { GENRES } from "@/lib/civilite";
 import { 
-    Plus, Search, Edit, Trash2, User, Sparkles, Shield, Mail, 
-    Phone, MapPin, Calendar, FileText, UserCheck, AlertCircle
+    Plus, Search, Edit, Trash2, User, Shield, Mail, 
+    Phone, MapPin
 } from "lucide-react";
 
 const STATUT_COLORS = {

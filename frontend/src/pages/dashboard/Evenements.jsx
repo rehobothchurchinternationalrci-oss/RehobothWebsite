@@ -11,8 +11,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { 
-    Plus, Edit, Trash2, Calendar, MapPin, Clock, Sparkles, 
-    Globe, Bookmark, Info, CalendarPlus, Loader2
+    Plus, Edit, Trash2, Calendar, MapPin, Clock, 
+    Globe, CalendarPlus, Loader2
 } from "lucide-react";
 import moment from "moment";
 

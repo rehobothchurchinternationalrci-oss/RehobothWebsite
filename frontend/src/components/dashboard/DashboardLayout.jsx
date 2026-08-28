@@ -15,7 +15,6 @@ import {
     Church,
     Camera,
     Loader2,
-    ChevronDown,
     Search,
     Bell,
     Sun,
@@ -29,7 +28,6 @@ import { Input } from "@/components/ui/input";
 import { apiClient } from "@/api/apiClient";
 import config from "@/config";
 import { GENRES, avecCivilite } from "@/lib/civilite";
-import { Badge } from "@/components/ui/badge";
 import { useParametres } from "@/hooks/useParametres";
 import LogoEglise from "@/components/LogoEglise";
 
