@@ -24,7 +24,6 @@ export default function PublicLayout({ children, showNav = true }) {
         { name: "À Propos", path: "/a-propos" },
         { name: "Prédications", path: "/predications" },
         { name: "Départements", path: "/departements" },
-        { name: "Faire un Don", path: "/don" },
         { name: "Contact", path: "/contact" },
     ];
 
@@ -183,7 +182,6 @@ export default function PublicLayout({ children, showNav = true }) {
                             <Link to="/a-propos" className="hover:text-bordeaux hover:underline transition-colors">À Propos</Link>
                             <Link to="/evenements" className="hover:text-bordeaux hover:underline transition-colors">Événements</Link>
                             <Link to="/predications" className="hover:text-bordeaux hover:underline transition-colors">Prédications</Link>
-                            <Link to="/don" className="hover:text-bordeaux hover:underline transition-colors">Faire un Don</Link>
                         </nav>
                     </div>
                     <div>

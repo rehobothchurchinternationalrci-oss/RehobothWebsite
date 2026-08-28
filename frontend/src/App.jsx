@@ -19,7 +19,6 @@ const Evenements = lazy(() => import('./pages/public/Evenements'));
 const Predications = lazy(() => import('./pages/public/Predications'));
 const Departements = lazy(() => import('./pages/public/Departements'));
 const Contact = lazy(() => import('./pages/public/Contacts'));
-const Don = lazy(() => import('./pages/public/Dons'));
 const RejoindreDepartement = lazy(() => import('./pages/public/RejoindreDepartement'));
 
 // Dashboard pages
@@ -77,7 +76,6 @@ const AuthenticatedApp = () => {
       <Route path="/departements" element={<Departements />} />
       <Route path="/departements/:id/rejoindre" element={<RejoindreDepartement />} />
       <Route path="/contact" element={<Contact />} />
-      <Route path="/don" element={<Don />} />
 
       {/* Dashboard - All Authenticated Users */}
       <Route element={<ProtectedRoute />}>
