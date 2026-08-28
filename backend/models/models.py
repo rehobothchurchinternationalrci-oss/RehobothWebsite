@@ -287,21 +287,6 @@ class Annonce(db.Model):
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=datetime.utcnow)
 
 # ============================================================
-# MODÈLE : Don
-# ============================================================
-class Don(db.Model):
-    __tablename__ = 'dons'
-
-    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    membre_nom = db.Column(db.Text)
-    montant = db.Column(db.Numeric(10, 2), nullable=False)
-    date = db.Column(db.Date, nullable=False)
-    type = db.Column(db.Text, nullable=False)
-    anonyme = db.Column(db.Boolean, default=False)
-    note = db.Column(db.Text)
-    created_at = db.Column(db.DateTime(timezone=True), default=datetime.utcnow)
-
-# ============================================================
 # MODÈLE : Finance (Livre comptable)
 # ============================================================
 class Finance(db.Model):

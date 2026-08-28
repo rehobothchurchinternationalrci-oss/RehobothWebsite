@@ -27,7 +27,6 @@ const Membres = lazy(() => import('./pages/dashboard/Membres'));
 const DepartementsDash = lazy(() => import('./pages/dashboard/Departements'));
 const EvenementsDash = lazy(() => import('./pages/dashboard/Evenements'));
 const Presences = lazy(() => import('./pages/dashboard/Presences'));
-const Dons = lazy(() => import('./pages/dashboard/Dons'));
 const PredicationsDash = lazy(() => import('./pages/dashboard/Predications'));
 const Communication = lazy(() => import('./pages/dashboard/Communication'));
 const Parametres = lazy(() => import('./pages/dashboard/Parametres'));
@@ -85,7 +84,6 @@ const AuthenticatedApp = () => {
       {/* Dashboard - Admin & pastoral roles */}
       <Route element={<ProtectedRoute allowedRoles={['SUPER_ADMIN', 'PASTEUR', 'SECRETAIRE']} />}>
         <Route path="/dashboard/membres" element={<Membres />} />
-        <Route path="/dashboard/dons" element={<Dons />} />
       </Route>
 
       {/* Dashboard - Departments & presence management */}

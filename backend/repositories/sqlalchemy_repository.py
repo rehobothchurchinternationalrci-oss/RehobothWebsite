@@ -23,7 +23,7 @@ def get_model_class(table_name: str):
     from models.models import (
         User, EgliseParametres, Membre, Departement, MembreDepartement,
         ChefDepartement, ReunionDepartement, Evenement, Presence,
-        PresenceReunion, RendezVous, Annonce, Don, Finance, Predication,
+        PresenceReunion, RendezVous, Annonce, Finance, Predication,
         Media, Galerie, Session, InscriptionSession, RapportDepartement,
         Communication, Message, Notification, Document, AuditLog,
         ParametresSysteme, PasswordResetToken
@@ -41,7 +41,6 @@ def get_model_class(table_name: str):
         "presences_reunion": PresenceReunion,
         "rendez_vous": RendezVous,
         "annonces": Annonce,
-        "dons": Don,
         "finances": Finance,
         "predications": Predication,
         "medias": Media,

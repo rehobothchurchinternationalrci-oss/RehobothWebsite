@@ -102,15 +102,6 @@ class PresenceSchema(BaseSchema):
     evenement_date: datetime
     present: bool
 
-# 6. Don
-class DonSchema(BaseSchema):
-    membre_nom: Optional[str] = None
-    montant: float = Field(..., ge=0)
-    date: date
-    type: str = Field(..., pattern="^(dime|offrande|don_special)$")
-    anonyme: Optional[bool] = False
-    note: Optional[str] = None
-
 # 7. Predication
 class PredicationSchema(BaseSchema):
     titre: str

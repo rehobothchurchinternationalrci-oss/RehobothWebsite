@@ -16,9 +16,8 @@ def create_crud_blueprint(name: str, url_prefix: str, service, schema,
     - read_roles : rôles applicatifs autorisés à LIRE (GET). Si None, tout
       compte authentifié peut lire.
       À renseigner impérativement sur les ressources sensibles : sans lui,
-      un simple MEMBRE pouvait lister l'intégralité des dons et l'annuaire
-      complet (téléphone, adresse, date de naissance) via GET /api/dons et
-      GET /api/membres.
+      un simple MEMBRE pouvait lister l'annuaire complet (téléphone,
+      adresse, date de naissance) via GET /api/membres.
     - write_roles : rôles applicatifs autorisés à écrire (POST/PUT/DELETE).
       Si None, toute personne authentifiée peut écrire.
     """

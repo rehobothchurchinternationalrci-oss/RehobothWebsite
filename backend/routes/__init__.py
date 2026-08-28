@@ -10,7 +10,6 @@ from models.schemas import (
     DepartementSchema,
     EvenementSchema,
     PresenceSchema,
-    DonSchema,
     PredicationSchema,
     EgliseParametresSchema,
     MembreDepartementSchema,
@@ -22,7 +21,6 @@ member_service = BaseService("membres")
 department_service = DepartementService()
 event_service = BaseService("evenements")
 presence_service = BaseService("presences")
-donation_service = BaseService("dons")
 sermon_service = BaseService("predications")
 settings_service = BaseService("eglise_parametres")
 member_department_service = BaseService("membre_departements")
@@ -75,19 +73,6 @@ presences_bp = create_crud_blueprint(
     write_roles=DEPT_ROLES
 )
 
-dons_bp = create_crud_blueprint(
-    name="dons",
-    url_prefix="/api/dons",
-    service=donation_service,
-    schema=DonSchema,
-    # Données financières nominatives. Aligné sur la matrice du frontend
-    # (/dashboard/dons). NB : la politique RLS `dons_finance_only` est plus
-    # stricte encore (SUPER_ADMIN + PASTEUR, sans SECRETAIRE) — resserrer ici
-    # relève d'une décision métier, pas d'un correctif technique.
-    read_roles=ADMIN_ROLES,
-    write_roles=ADMIN_ROLES
-)
-
 predications_bp = create_crud_blueprint(
     name="predications",
     url_prefix="/api/predications",
@@ -133,7 +118,6 @@ def register_blueprints(app):
     app.register_blueprint(dept_ws_bp)
     app.register_blueprint(evenements_bp)
     app.register_blueprint(presences_bp)
-    app.register_blueprint(dons_bp)
     app.register_blueprint(predications_bp)
     app.register_blueprint(parametres_bp)
     app.register_blueprint(membre_departements_bp)

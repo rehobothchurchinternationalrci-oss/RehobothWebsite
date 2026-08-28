@@ -1,0 +1,27 @@
+-- ============================================================
+-- MIGRATION 008 — Suppression du module « dons »
+-- ============================================================
+-- Retire la table `dons`, son index et sa politique RLS.
+--
+-- La fonctionnalité a été retirée partout ailleurs : page publique
+-- « Faire un don », écran /dashboard/dons, carte « Dons récents » du tableau
+-- de bord, et endpoint /api/dons côté Flask. Cette migration met la base en
+-- accord avec le code.
+--
+-- ⚠️ DESTRUCTIF ET IRRÉVERSIBLE
+-- Les dons enregistrés sont définitivement perdus. Exporter d'abord :
+--     SELECT * FROM dons ORDER BY date;   -- puis « Download CSV »
+--
+-- Le livre comptable `finances` n'est PAS touché : c'est une table distincte,
+-- toujours exploitée, et sa valeur d'énumération 'DON' reste valide.
+--
+-- Rejouable : peut être exécutée plusieurs fois sans erreur.
+-- À exécuter dans l'éditeur SQL Supabase, dans l'ordre des numéros.
+--
+-- Annulation : voir 008_rollback.sql (restaure la structure, pas les données).
+-- ============================================================
+
+-- DROP TABLE emporte avec lui l'index idx_dons_date et la politique
+-- dons_finance_only : inutile de les supprimer séparément. Aucune autre table
+-- ne référence `dons`, la suppression ne casse donc aucune clé étrangère.
+DROP TABLE IF EXISTS dons;

@@ -3,22 +3,18 @@ import { apiClient } from "@/api/apiClient";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
-    Users, Calendar, DollarSign, BookOpen, Heart,
+    Users, Calendar, BookOpen,
     ShieldAlert, FileText
 } from "lucide-react";
 import moment from "moment";
 import { useAuthStore } from "@/store/authStore";
-import { Badge } from "@/components/ui/badge";
 import DepartementWorkspace from "./DepartementWorkspace";
 import { ouvrirFichier } from "@/lib/fichiers";
 import { avecCivilite } from "@/lib/civilite";
 
 export default function Dashboard() {
     const { user } = useAuthStore();
-    const [stats, setStats] = useState({ membres: 0, evenements: 0, dons: 0, predications: 0 });
-    const [recentDons, setRecentDons] = useState([]);
-    // null tant qu'on ne sait pas ; false si l'API a refusé la lecture des dons.
-    const [peutVoirDons, setPeutVoirDons] = useState(false);
+    const [stats, setStats] = useState({ membres: 0, evenements: 0, predications: 0 });
     const [prochainEv, setProchainEv] = useState([]);
     const [documents, setDocuments] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -37,7 +33,6 @@ export default function Dashboard() {
                 setStats({
                     membres: membres.length,
                     evenements: reunions.length,
-                    dons: 0,
                     predications: 0
                 });
                 setProchainEv(reunions);
@@ -45,25 +40,21 @@ export default function Dashboard() {
             }).catch(console.error)
                 .finally(() => setLoading(false));
         } else {
-            // L'annuaire et les dons sont désormais réservés à l'encadrement :
-            // l'API répond 403 aux autres rôles. On neutralise chaque appel
+            // L'annuaire est réservé à l'encadrement : l'API répond 403 aux
+            // autres rôles. On neutralise chaque appel
             // individuellement, sinon un seul refus ferait échouer tout le
             // Promise.all et viderait le tableau de bord.
             Promise.all([
                 apiClient.entities.Membre.filter({ statut: "membre_actif" }).catch(() => null),
                 apiClient.entities.Evenement.list().catch(() => []),
-                apiClient.entities.Don.list("-date", 5).catch(() => null),
                 apiClient.entities.Predication.list("-date", 1).catch(() => []),
                 apiClient.entities.Evenement.filter({ public: true }, "date_debut", 3).catch(() => []),
-            ]).then(([membres, evs, dons, preds, prochains]) => {
+            ]).then(([membres, evs, preds, prochains]) => {
                 setStats({
                     membres: membres ? membres.length : null,
                     evenements: evs.length,
-                    dons: dons ? dons.reduce((s, d) => s + (d.montant || 0), 0) : null,
                     predications: preds.length,
                 });
-                setRecentDons(dons || []);
-                setPeutVoirDons(dons !== null);
                 setProchainEv(prochains);
             }).catch(console.error)
                 .finally(() => setLoading(false));
@@ -100,8 +91,6 @@ export default function Dashboard() {
         stats.membres !== null &&
             { label: "Membres actifs", value: stats.membres, icon: Users, desc: "Fidèles enregistrés" },
         { label: "Événements", value: stats.evenements, icon: Calendar, desc: "Planifiés cette année" },
-        peutVoirDons &&
-            { label: "Dons récents (top 5)", value: `${stats.dons}€`, icon: DollarSign, desc: "Total des dons récents" },
         { label: "Prédications", value: stats.predications, icon: BookOpen, desc: "Médias en ligne" }
     ].filter(Boolean);
 
@@ -188,8 +177,8 @@ export default function Dashboard() {
                         </CardContent>
                     </Card>
 
-                    {/* Documents (chef) ou Dons (admin) */}
-                    {isChef ? (
+                    {/* Documents du département (chefs uniquement) */}
+                    {isChef && (
                         <Card className="rounded-xl">
                             <CardHeader>
                                 <CardTitle className="text-base flex items-center gap-2">
@@ -228,47 +217,6 @@ export default function Dashboard() {
                                                         Voir
                                                     </button>
                                                 )}
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
-                    ) : !peutVoirDons ? null : (
-                        <Card className="rounded-xl">
-                            <CardHeader>
-                                <CardTitle className="text-base flex items-center gap-2">
-                                    <Heart className="w-4 h-4 text-muted-foreground" />
-                                    Dons récents
-                                </CardTitle>
-                                <CardDescription>Les dernières offrandes et contributions reçues.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                {recentDons.length === 0 ? (
-                                    <div className="text-center py-10">
-                                        <Heart className="w-10 h-10 mx-auto text-muted-foreground/50 mb-3" />
-                                        <p className="text-sm text-muted-foreground">Aucune contribution récente</p>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-3">
-                                        {recentDons.map(d => (
-                                            <div key={d.id} className="flex items-center justify-between p-3 border border-border rounded-lg">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-full bg-muted text-foreground flex items-center justify-center font-semibold text-xs">
-                                                        {d.anonyme ? "A" : (d.membre_nom?.charAt(0) || "—")}
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-sm font-semibold text-foreground">
-                                                            {d.anonyme ? "Donateur anonyme" : (d.membre_nom || "Donateur")}
-                                                        </p>
-                                                        <p className="text-xs text-muted-foreground mt-0.5">
-                                                            {moment(d.date).format("D MMM YYYY")} • {d.type}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <Badge variant="secondary" className="font-semibold rounded-full">
-                                                    +{d.montant}€
-                                                </Badge>
                                             </div>
                                         ))}
                                     </div>

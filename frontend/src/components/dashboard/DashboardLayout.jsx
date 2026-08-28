@@ -7,7 +7,6 @@ import {
     Users2,
     Calendar,
     CheckSquare,
-    Heart,
     BookOpen,
     Send,
     Settings,
@@ -154,7 +153,6 @@ export default function DashboardLayout({ children }) {
         { name: "Départements", path: "/dashboard/departements", icon: Users2, roles: ['SUPER_ADMIN', 'PASTEUR', 'SECRETAIRE', 'CHEF_DEPARTEMENT'] },
         { name: "Événements", path: "/dashboard/evenements", icon: Calendar, roles: ['SUPER_ADMIN', 'PASTEUR', 'SECRETAIRE', 'EQUIPE_MEDIA', 'CHEF_DEPARTEMENT'] },
         { name: "Présences", path: "/dashboard/presences", icon: CheckSquare, roles: ['SUPER_ADMIN', 'PASTEUR', 'SECRETAIRE', 'CHEF_DEPARTEMENT'] },
-        { name: "Dons", path: "/dashboard/dons", icon: Heart, roles: ['SUPER_ADMIN', 'PASTEUR', 'SECRETAIRE'] },
         { name: "Prédications", path: "/dashboard/predications", icon: BookOpen, roles: ['SUPER_ADMIN', 'PASTEUR', 'EQUIPE_MEDIA'] },
         { name: "Communication", path: "/dashboard/communication", icon: Send, roles: ['SUPER_ADMIN', 'PASTEUR', 'SECRETAIRE', 'CHEF_DEPARTEMENT'] },
         { name: "Paramètres", path: "/dashboard/parametres", icon: Settings, roles: ['SUPER_ADMIN', 'PASTEUR'] },
@@ -167,7 +165,6 @@ export default function DashboardLayout({ children }) {
     const getBreadcrumbName = (pathname) => {
         if (pathname === "/dashboard") return "Tableau de bord";
         if (pathname === "/dashboard/membres") return "Membres";
-        if (pathname === "/dashboard/dons") return "Dons";
         if (pathname === "/dashboard/departements") return "Départements";
         if (pathname === "/dashboard/evenements") return "Événements";
         if (pathname === "/dashboard/presences") return "Présences";
@@ -240,7 +237,7 @@ export default function DashboardLayout({ children }) {
                             <SidebarGroupLabel className="px-3 text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground mb-1.5">Gestion</SidebarGroupLabel>
                             <SidebarGroupContent>
                                 <SidebarMenu className="space-y-0.5">
-                                    {filteredMenuItems.filter(item => ["/dashboard/evenements", "/dashboard/presences", "/dashboard/dons"].includes(item.path)).map(renderNavItem)}
+                                    {filteredMenuItems.filter(item => ["/dashboard/evenements", "/dashboard/presences"].includes(item.path)).map(renderNavItem)}
                                 </SidebarMenu>
                             </SidebarGroupContent>
                         </SidebarGroup>
