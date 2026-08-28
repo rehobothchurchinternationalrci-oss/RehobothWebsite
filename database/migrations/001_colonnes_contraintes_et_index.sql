@@ -109,5 +109,4 @@ CREATE INDEX IF NOT EXISTS idx_membres_statut         ON membres(statut);
 CREATE INDEX IF NOT EXISTS idx_departements_actif     ON departements(actif);
 CREATE INDEX IF NOT EXISTS idx_evenements_public      ON evenements(est_public, date_debut);
 CREATE INDEX IF NOT EXISTS idx_predications_publie    ON predications(publie, date);
-CREATE INDEX IF NOT EXISTS idx_dons_date              ON dons(date);
 CREATE INDEX IF NOT EXISTS idx_communications_created ON communications(created_at);

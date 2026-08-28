@@ -18,6 +18,7 @@ Dans l'éditeur SQL Supabase, **dans l'ordre des numéros** :
 | 005 | `005_departements_officiels_et_cultes.sql` | départements réels de l'église, programme des cultes |
 | 006 | `006_normalisation_genre_membres.sql` | `genre` ramené à `'M'`/`'F'` + contrainte |
 | 007 | `007_alignement_users_auth.sql` | `public.users.id` réaligné sur `auth.users.id` (comptes de chefs qui ne pouvaient pas se connecter) |
+| 008 | `008_suppression_module_dons.sql` | table `dons` supprimée — la fonctionnalité a été retirée du site, du dashboard et de l'API |
 
 L'ordre compte : 003 dépend de la colonne `created_at` ajoutée en 001, et 004
 s'appuie sur les tables et colonnes mises en place avant.
@@ -30,11 +31,11 @@ rien — c'est normal, le schéma est déjà à jour.
 
 Chaque migration a son `00X_rollback.sql`, à exécuter dans l'ordre **inverse**.
 
-Trois d'entre eux ne restaurent pas les données transformées, et le disent en
+Quatre d'entre eux ne restaurent pas les données transformées, et le disent en
 en-tête : les anciens chefs de département simultanés (003), les saisies libres
-de `genre` (006) et les départements d'exemple supprimés (005). Ces
-transformations ne sont pas réversibles : l'information d'origine est perdue,
-il n'y a pas moyen de deviner laquelle était la bonne.
+de `genre` (006), les départements d'exemple supprimés (005) et les dons
+enregistrés (008). Ces transformations ne sont pas réversibles : l'information
+d'origine est perdue, il n'y a pas moyen de deviner laquelle était la bonne.
 
 Le rollback de 007 ne fait rien, volontairement : revenir en arrière
 consisterait à recasser la connexion des comptes qu'il vient de réparer.
@@ -45,3 +46,16 @@ consisterait à recasser la connexion des comptes qu'il vient de réparer.
 - `../create_admin.sql` — premier compte administrateur (`SUPER_ADMIN`)
 - `../delete_all_table.sql` — réinitialisation complète (**destructif** : supprime toutes les tables)
 - `../../backend/storage_buckets.sql` — buckets Supabase Storage et politiques
+
+## Note sur la suppression du module dons (008)
+
+`008` supprime la table `dons`. Les instructions qui la visaient dans `001`
+(index `idx_dons_date`) et `004` (politique `dons_finance_only`) ont été
+retirées de ces fichiers, ainsi que du DDL `../rehobot.sql` : sans cela, la
+chaîne complète jouée sur une base **neuve** échouerait à `001`, l'index
+portant sur une table que le DDL ne crée plus.
+
+Sur une base **déjà en service**, ces deux instructions ont de toute façon
+déjà été exécutées ; les relancer amputées reste sans effet.
+
+Le livre comptable `finances` est une table distincte et n'est pas concerné.

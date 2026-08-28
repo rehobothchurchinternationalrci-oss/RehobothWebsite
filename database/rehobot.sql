@@ -355,18 +355,6 @@ CREATE TABLE IF NOT EXISTS annonces (
   created_at      TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
--- ── dons ────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS dons (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    membre_nom TEXT,
-    montant NUMERIC(10, 2) NOT NULL CHECK (montant >= 0),
-    date DATE NOT NULL,
-    type TEXT NOT NULL CHECK (type IN ('dime', 'offrande', 'don_special')),
-    anonyme BOOLEAN DEFAULT FALSE,
-    note TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
 -- ── finances (livre comptable) ──────────────────────────────
 CREATE TABLE IF NOT EXISTS finances (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -724,7 +712,6 @@ CREATE INDEX IF NOT EXISTS idx_membres_statut         ON membres(statut);
 CREATE INDEX IF NOT EXISTS idx_departements_actif     ON departements(actif);
 CREATE INDEX IF NOT EXISTS idx_evenements_public      ON evenements(est_public, date_debut);
 CREATE INDEX IF NOT EXISTS idx_predications_publie    ON predications(publie, date);
-CREATE INDEX IF NOT EXISTS idx_dons_date              ON dons(date);
 CREATE INDEX IF NOT EXISTS idx_communications_created ON communications(created_at);
 
 
@@ -1484,11 +1471,7 @@ CREATE POLICY annonces_write ON annonces
   WITH CHECK (public.app_is_admin() OR public.app_is_chef(departement_id));
 
 
--- ── dons / finances : SUPER_ADMIN et PASTEUR uniquement ─────
-CREATE POLICY dons_finance_only ON dons
-  FOR ALL TO authenticated
-  USING (public.app_is_finance()) WITH CHECK (public.app_is_finance());
-
+-- ── finances : SUPER_ADMIN et PASTEUR uniquement ────────────
 CREATE POLICY finances_finance_only ON finances
   FOR ALL TO authenticated
   USING (public.app_is_finance()) WITH CHECK (public.app_is_finance());
