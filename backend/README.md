@@ -28,8 +28,12 @@ Le schéma complet et idempotent est dans [`../database/rehobot.sql`](../databas
 ## Tests
 
 ```bash
-FLASK_ENV=testing pytest
+pytest
 ```
+
+`pytest` seul suffit : `testpaths` (pyproject.toml) cible `tests/`, et `conftest.py`
+pose `FLASK_ENV=testing` puis remplace le dépôt Supabase par un double en mémoire —
+la suite ne touche donc ni la base ni le réseau.
 
 ## Organisation
 
@@ -41,8 +45,8 @@ FLASK_ENV=testing pytest
 | `routes/` | Blueprints : `auth_routes`, `crud_factory` (CRUD générique), `departement_workspace_routes`, `integrations` |
 | `middlewares/` | `auth.py` (validation JWT), `rbac.py` (rôles, `department_scoped`) |
 | `services/` | `BaseService` (CRUD), `DepartementService` (enrichit `responsable_nom`), `EmailService` (Resend) |
-| `repositories/` | `base_repository`, `supabase_repository`, `sqlalchemy_repository` |
-| `models/` | `models.py` (SQLAlchemy) et `schemas.py` (Pydantic) |
+| `repositories/` | `base_repository` (interface abstraite) et `supabase_repository` (accès PostgREST) |
+| `models/` | `schemas.py` — schémas de validation Pydantic |
 | `utils/` | `response.py` (enveloppe JSON commune), `email_templates.py` (HTML des emails) |
 
 ## Rate limiting

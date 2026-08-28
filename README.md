@@ -1,6 +1,6 @@
 # Rehoboth Church International
 
-Plateforme web de gestion d'église : un **site public** (accueil, événements, prédications, départements, dons, contact) et un **espace d'administration** (dashboard) pour gérer les membres, départements, présences, dons, prédications, communications et paramètres de l'église.
+Plateforme web de gestion d'église : un **site public** (accueil, à propos, événements, prédications, départements, contact) et un **espace d'administration** (dashboard) pour gérer les membres, départements, présences, prédications, communications et paramètres de l'église.
 
 - **Frontend** : React 18 + Vite, Tailwind CSS, shadcn/ui (Radix), TanStack Query, Zustand, React Router
 - **Backend** : API Flask (app factory + blueprints), validation Pydantic, rate limiting (flask-limiter)
@@ -49,7 +49,7 @@ Six rôles, appliqués **côté backend** (décorateurs `token_required` + `role
 |------|-----------------|
 | `SUPER_ADMIN` | Tout |
 | `PASTEUR` | Tout |
-| `SECRETAIRE` | Membres, départements, présences, dons, événements, communication |
+| `SECRETAIRE` | Membres, départements, présences, événements, communication |
 | `CHEF_DEPARTEMENT` | **Uniquement le(s) département(s) qu'il dirige** : membres, réunions, présences, communication, rapports, ressources |
 | `EQUIPE_MEDIA` | Événements, prédications |
 | `MEMBRE` | Rôle par défaut à l'inscription (pas d'accès admin) |
@@ -178,7 +178,7 @@ Base : `/api`. Toutes les écritures et les lectures sensibles exigent un `Autho
 |---------|-----------|
 | Santé | `GET /api/health` (liveness), `GET /api/health/ready` (readiness : config + Supabase) |
 | Auth | `POST /api/auth/login`, `GET /api/auth/me`, `POST /api/auth/forgot-password`, `POST /api/auth/reset-password`, `POST /api/auth/upload`, `POST /api/auth/file-url` |
-| Ressources CRUD | `/api/membres`, `/api/departements`, `/api/evenements`, `/api/presences`, `/api/dons`, `/api/predications`, `/api/eglise-parametres`, `/api/membre-departements`, `/api/communications` |
+| Ressources CRUD | `/api/membres`, `/api/departements`, `/api/evenements`, `/api/presences`, `/api/predications`, `/api/eglise-parametres`, `/api/membre-departements`, `/api/communications` |
 | Espace département | `/api/departements/<id>` (POST/PUT dédiés, création du chef), `/<id>/chef`, `/<id>/membres`, `/reunions`, `/reunions/<rid>/presences`, `/notifications`, `/rapports`, `/documents`, `/rejoindre` (adhésion publique) |
 | Intégrations | `POST /api/integrations/send-email` |
 
@@ -209,8 +209,8 @@ rehoboth-church-international/
 │   ├── routes/                    # Blueprints : auth, crud_factory, departement_workspace, integrations
 │   ├── middlewares/               # auth.py (JWT) + rbac.py (rôles, department_scoped)
 │   ├── services/                  # BaseService, DepartementService, EmailService
-│   ├── repositories/              # base / supabase / sqlalchemy
-│   ├── models/                    # models.py + schemas.py (Pydantic)
+│   ├── repositories/              # base_repository (interface) + supabase_repository (PostgREST)
+│   ├── models/schemas.py          # Schémas de validation Pydantic
 │   ├── utils/                     # response.py (enveloppe JSON), email_templates.py
 │   ├── storage_buckets.sql        # Buckets Supabase Storage + politiques
 │   ├── Procfile + railway.toml    # Déploiement Nixpacks (gunicorn)
@@ -219,7 +219,7 @@ rehoboth-church-international/
 │   ├── rehobot.sql                # Schéma PostgreSQL complet (idempotent)
 │   ├── create_admin.sql           # Premier compte administrateur
 │   ├── delete_all_table.sql       # Réinitialisation (destructif)
-│   └── migrations/                # Évolutions incrémentales 001 → 007 (+ rollbacks)
+│   └── migrations/                # Évolutions incrémentales 001 → 009 (+ rollbacks)
 └── frontend/
     ├── Dockerfile + nginx.conf.template   # Build Vite + service statique (Railway)
     └── src/
@@ -230,7 +230,7 @@ rehoboth-church-international/
         ├── api/apiClient.js       # Proxy CRUD
         ├── config/endpoints.js    # Table des endpoints
         ├── contexts/ store/       # État d'authentification (AuthContext, authStore)
-        └── hooks/                 # useDarkMode, use-mobile, etc.
+        └── hooks/                  # useDarkMode, useParametres, use-mobile
 ```
 
 ## Déploiement

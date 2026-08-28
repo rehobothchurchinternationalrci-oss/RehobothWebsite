@@ -20,6 +20,24 @@ persistant n'est nécessaire.
 
 ---
 
+## 0. Avant le premier déploiement
+
+À faire une fois, dans le SQL Editor de Supabase, **avant** de brancher les services :
+
+1. **Schéma** — exécuter [`database/rehobot.sql`](database/rehobot.sql) (idempotent) sur une base neuve.
+2. **Migrations** — sur une base déjà en service, exécuter `database/migrations/001` → `009`
+   dans l'ordre des numéros ; voir leur [README](database/migrations/README.md). La `009`
+   est **destructive** (elle supprime 9 tables jamais utilisées) : lancer d'abord son
+   inventaire de lignes, en tête de fichier, et exporter ce qui n'est pas à zéro.
+3. **Buckets Storage** — exécuter [`backend/storage_buckets.sql`](backend/storage_buckets.sql).
+4. **Premier administrateur** — [`database/create_admin.sql`](database/create_admin.sql),
+   après y avoir mis un vrai e-mail et un mot de passe solide (le fichier ne doit pas
+   être réenregistré avec ces valeurs).
+
+Vérifier ensuite dans Supabase → *Advisors* qu'aucune table n'est signalée sans RLS.
+
+---
+
 ## 1. Service backend
 
 1. Railway → **New Project** → *Deploy from GitHub repo* → sélectionner ce dépôt.
@@ -28,7 +46,7 @@ persistant n'est nécessaire.
    - *Builder* : Nixpacks (configuré via `backend/railway.toml`)
 3. Dans **Variables**, renseigner (cf. [backend/.env.example](backend/.env.example)) :
 
-   ```
+   ```text
    SUPABASE_URL=https://xxxx.supabase.co
    SUPABASE_SERVICE_ROLE_KEY=<clé service_role>
    FLASK_ENV=production
@@ -75,7 +93,7 @@ exact et partagé entre workers, ajouter un service Redis et renseigner
    - *Builder* : Dockerfile (configuré via `frontend/railway.json`)
 3. Dans **Variables** :
 
-   ```
+   ```text
    VITE_API_BASE_URL=https://<backend>.up.railway.app/api
    VITE_APP_VERSION=1.0.0
    ```
@@ -100,7 +118,7 @@ par Railway (via `envsubst` sur `nginx.conf.template`) et expose `/healthz`.
 Une fois le domaine du frontend connu, revenir sur le service **backend** et
 mettre `CORS_ORIGINS` (et `FRONTEND_URL`) à jour :
 
-```
+```text
 CORS_ORIGINS=https://<frontend>.up.railway.app
 FRONTEND_URL=https://<frontend>.up.railway.app
 ```
@@ -108,7 +126,7 @@ FRONTEND_URL=https://<frontend>.up.railway.app
 Plusieurs origines se séparent par des virgules (utile pour ajouter un domaine
 personnalisé) :
 
-```
+```text
 CORS_ORIGINS=https://rehoboth.up.railway.app,https://www.rehoboth.org
 ```
 
