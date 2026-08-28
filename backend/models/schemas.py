@@ -1,5 +1,5 @@
-from pydantic import BaseModel, EmailStr, Field, HttpUrl, model_validator
-from typing import Optional, List, Union, get_args, get_origin
+from pydantic import BaseModel, EmailStr, Field, model_validator
+from typing import Optional, Union, get_args, get_origin
 from datetime import date, datetime
 
 

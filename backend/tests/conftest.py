@@ -11,6 +11,12 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 # presente. Sans cela, /api/health annonce l'environnement du .env local.
 os.environ["FLASK_ENV"] = "testing"
 
+from tests.fake_supabase import FakeSupabase
+
+# Instance unique : magasin partage entre le client Supabase simule et le depot
+# des routes CRUD (voir MockSupabaseRepository plus bas).
+fake_supabase = FakeSupabase()
+
 # Mock token_required decorator
 def mock_token_required(f):
     from functools import wraps
@@ -30,15 +36,29 @@ def mock_token_required(f):
     return decorated
 
 class MockSupabaseRepository:
-    _db = {}
+    """
+    Depot en memoire pour BaseService.
+
+    Partage le magasin de `fake_supabase` : les routes de l'espace departement
+    ecrivent via le client Supabase et les routes CRUD via ce depot ; sans
+    magasin commun, un departement cree par les unes serait invisible aux
+    autres.
+    """
+
+    _db = fake_supabase.tables
 
     def __init__(self, table_name):
         self.table_name = table_name
-        if table_name not in self._db:
-            self._db[table_name] = []
+
+    @property
+    def _rows(self):
+        # setdefault a chaque acces, et non une fois dans __init__ : BaseService
+        # garde son depot en cache d'un test a l'autre, alors que la fixture
+        # base_vierge vide le magasin entre les tests.
+        return self._db.setdefault(self.table_name, [])
 
     def list(self, order_by=None, limit=None):
-        data = list(self._db[self.table_name])
+        data = list(self._rows)
         if order_by:
             descending = order_by.startswith("-")
             col = order_by[1:] if descending else order_by
@@ -48,7 +68,7 @@ class MockSupabaseRepository:
         return data
 
     def filter(self, filters, order_by=None, limit=None):
-        data = list(self._db[self.table_name])
+        data = list(self._rows)
         filtered_data = []
         for item in data:
             match = True
@@ -67,7 +87,7 @@ class MockSupabaseRepository:
         return filtered_data
 
     def get(self, id):
-        for item in self._db[self.table_name]:
+        for item in self._rows:
             if str(item.get("id")) == id:
                 return item
         return None
@@ -76,32 +96,47 @@ class MockSupabaseRepository:
         item = {**data}
         if "id" not in item:
             item["id"] = str(uuid.uuid4())
-        self._db[self.table_name].append(item)
+        self._rows.append(item)
         return item
 
     def update(self, id, data):
-        for i, item in enumerate(self._db[self.table_name]):
+        for i, item in enumerate(self._rows):
             if str(item.get("id")) == id:
                 updated_item = {**item, **data}
-                self._db[self.table_name][i] = updated_item
+                self._rows[i] = updated_item
                 return updated_item
         raise ValueError(f"Record with id {id} not found")
 
     def delete(self, id):
-        for i, item in enumerate(self._db[self.table_name]):
+        for i, item in enumerate(self._rows):
             if str(item.get("id")) == id:
-                self._db[self.table_name].pop(i)
+                self._rows.pop(i)
                 return True
         return False
 
-# Patch dependencies at module level before importing app code
+# Les remplacements doivent etre poses AVANT `from app import create_app` :
+# les blueprints font `from extensions import get_supabase` au chargement, donc
+# ils capturent la fonction telle qu'elle est a cet instant.
 import middlewares.auth
 middlewares.auth.token_required = mock_token_required
 
+import extensions
+extensions.get_supabase = lambda: fake_supabase
+
 import repositories.supabase_repository
 repositories.supabase_repository.SupabaseRepository = MockSupabaseRepository
+repositories.supabase_repository.get_supabase_client = lambda: fake_supabase
 
 from app import create_app
+
+
+@pytest.fixture(autouse=True)
+def base_vierge():
+    """Chaque test part d'un magasin vide : pas de dependance a l'ordre."""
+    fake_supabase.reset()
+    yield
+    fake_supabase.reset()
+
 
 @pytest.fixture(autouse=True)
 def mock_email(monkeypatch):

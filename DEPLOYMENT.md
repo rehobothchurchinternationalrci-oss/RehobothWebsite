@@ -25,10 +25,14 @@ persistant n'est nécessaire.
 À faire une fois, dans le SQL Editor de Supabase, **avant** de brancher les services :
 
 1. **Schéma** — exécuter [`database/rehobot.sql`](database/rehobot.sql) (idempotent) sur une base neuve.
-2. **Migrations** — sur une base déjà en service, exécuter `database/migrations/001` → `009`
-   dans l'ordre des numéros ; voir leur [README](database/migrations/README.md). La `009`
-   est **destructive** (elle supprime 9 tables jamais utilisées) : lancer d'abord son
-   inventaire de lignes, en tête de fichier, et exporter ce qui n'est pas à zéro.
+2. **Migrations** — exécuter `database/migrations/001` → `009` dans l'ordre des numéros ;
+   voir leur [README](database/migrations/README.md).
+   - Sur une base **déjà en service**, elles apportent les évolutions manquantes.
+   - Sur une base **neuve**, `001` → `008` ne font rien (le DDL est déjà à jour), mais
+     `009` reste nécessaire : `rehobot.sql` crée encore les 9 tables inutilisées qu'elle
+     supprime. Sans elle, une base neuve n'a pas la même forme que la production.
+   - La `009` est **destructive** : lancer d'abord l'inventaire de lignes en tête de
+     fichier et exporter tout ce qui n'est pas à zéro.
 3. **Buckets Storage** — exécuter [`backend/storage_buckets.sql`](backend/storage_buckets.sql).
 4. **Premier administrateur** — [`database/create_admin.sql`](database/create_admin.sql),
    après y avoir mis un vrai e-mail et un mot de passe solide (le fichier ne doit pas

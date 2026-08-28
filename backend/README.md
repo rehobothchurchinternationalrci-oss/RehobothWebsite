@@ -32,8 +32,15 @@ pytest
 ```
 
 `pytest` seul suffit : `testpaths` (pyproject.toml) cible `tests/`, et `conftest.py`
-pose `FLASK_ENV=testing` puis remplace le dépôt Supabase par un double en mémoire —
-la suite ne touche donc ni la base ni le réseau.
+pose `FLASK_ENV=testing` puis remplace **à la fois** le dépôt CRUD et le client
+Supabase (`extensions.get_supabase`) par le double en mémoire de
+[`tests/fake_supabase.py`](tests/fake_supabase.py). La suite ne touche donc ni le
+réseau ni la base.
+
+> ⚠️ Ne pas retirer ces remplacements : les routes de l'espace département
+> appellent `get_supabase()` directement. Sans le double, `pytest` **écrit dans
+> le projet Supabase configuré dans `.env`** — départements, comptes Auth et
+> fiches membres créés pour de vrai à chaque exécution.
 
 ## Organisation
 
