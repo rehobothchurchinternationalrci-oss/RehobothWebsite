@@ -106,7 +106,7 @@ export default function RejoindreDepartement() {
                                     <div className="space-y-1.5">
                                         <Label className="text-gray-700 text-xs font-bold uppercase tracking-wider">Prénom *</Label>
                                         <Input 
-                                            placeholder="Ex: Jean" 
+                                            placeholder="Ex : Grâce" 
                                             value={form.prenom} 
                                             onChange={e => setForm({ ...form, prenom: e.target.value })} 
                                             required 
@@ -116,7 +116,7 @@ export default function RejoindreDepartement() {
                                     <div className="space-y-1.5">
                                         <Label className="text-gray-700 text-xs font-bold uppercase tracking-wider">Nom *</Label>
                                         <Input 
-                                            placeholder="Ex: Dupont" 
+                                            placeholder="Ex : Kabila" 
                                             value={form.nom} 
                                             onChange={e => setForm({ ...form, nom: e.target.value })} 
                                             required 
@@ -129,7 +129,7 @@ export default function RejoindreDepartement() {
                                     <Label className="text-gray-700 text-xs font-bold uppercase tracking-wider">Adresse E-mail *</Label>
                                     <Input 
                                         type="email"
-                                        placeholder="jean.dupont@exemple.com" 
+                                        placeholder="grace.kabila@exemple.com" 
                                         value={form.email} 
                                         onChange={e => setForm({ ...form, email: e.target.value })} 
                                         required 
@@ -140,7 +140,7 @@ export default function RejoindreDepartement() {
                                 <div className="space-y-1.5">
                                     <Label className="text-gray-700 text-xs font-bold uppercase tracking-wider">Téléphone</Label>
                                     <Input 
-                                        placeholder="+33 6 12 34 56 78" 
+                                        placeholder="+90 532 123 45 67" 
                                         value={form.telephone} 
                                         onChange={e => setForm({ ...form, telephone: e.target.value })} 
                                         className="rounded-xl border-gray-200 h-11 focus:border-bordeaux focus:ring-bordeaux"
@@ -150,7 +150,7 @@ export default function RejoindreDepartement() {
                                 <div className="space-y-1.5">
                                     <Label className="text-gray-700 text-xs font-bold uppercase tracking-wider">Adresse</Label>
                                     <Input 
-                                        placeholder="Ex: 123 Rue de la Paix, Paris" 
+                                        placeholder="Ex : Fatih, Istanbul" 
                                         value={form.adresse} 
                                         onChange={e => setForm({ ...form, adresse: e.target.value })} 
                                         className="rounded-xl border-gray-200 h-11 focus:border-bordeaux focus:ring-bordeaux"

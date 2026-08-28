@@ -46,6 +46,29 @@ function sansValeursVides(record) {
     );
 }
 
+// Services d'images de remplacement. Ces hôtes ne servent que des visuels
+// génériques (un rectangle gris légendé) : une telle URL en base est un reste
+// de données de test, jamais le vrai logo de l'église. On l'ignore, sinon elle
+// masque le logo livré avec l'application.
+const HOTES_IMAGE_FACTICE = [
+    "placehold.co",
+    "placeholder.com",
+    "dummyimage.com",
+    "placekitten.com",
+    "picsum.photos",
+];
+
+function estImageFactice(url) {
+    try {
+        const hote = new URL(url).hostname.replace(/^www\./, "");
+        return HOTES_IMAGE_FACTICE.some(h => hote === h || hote.endsWith(`.${h}`));
+    } catch {
+        // Pas une URL absolue (chemin relatif, saisie incomplète) : on laisse
+        // passer, le repli à l'affichage prendra le relais si elle est cassée.
+        return false;
+    }
+}
+
 export function useParametres() {
     const { data, isLoading, isError } = useQuery({
         queryKey: PARAMETRES_QUERY_KEY,
@@ -81,7 +104,10 @@ export function useParametres() {
         adresseComplete,
         reseaux,
         /** Logo configuré, sinon le logo livré avec l'application. */
-        logoUrl: parametres.logo_url || logoParDefaut,
+        logoUrl:
+            parametres.logo_url && !estImageFactice(parametres.logo_url)
+                ? parametres.logo_url
+                : logoParDefaut,
         isLoading,
         isError,
     };

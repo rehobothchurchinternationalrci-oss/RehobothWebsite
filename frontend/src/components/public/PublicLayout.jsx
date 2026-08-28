@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Menu, X, User, LogOut, Facebook, Youtube, Instagram, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useParametres } from "@/hooks/useParametres";
+import LogoEglise from "@/components/LogoEglise";
 
 // Icône associée à chaque réseau renseigné dans /dashboard/parametres.
 const ICONES_RESEAUX = {
@@ -17,7 +18,7 @@ export default function PublicLayout({ children, showNav = true }) {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const { isAuthenticated, user, logout } = useAuth();
     const location = useLocation();
-    const { parametres, adresseComplete, reseaux, logoUrl } = useParametres();
+    const { parametres, adresseComplete, reseaux } = useParametres();
 
     const navLinks = [
         { name: "Accueil", path: "/" },
@@ -41,7 +42,7 @@ export default function PublicLayout({ children, showNav = true }) {
             <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
                 <div className="container mx-auto px-4 flex h-16 items-center justify-between">
                     <Link to="/" className="flex items-center gap-2 font-heading font-bold text-xl text-bordeaux">
-                        <img src={logoUrl} alt="" className="w-8 h-8 object-contain rounded-md" />
+                        <LogoEglise className="w-8 h-8 object-contain rounded-md" />
                         <span>{parametres.nom}</span>
                     </Link>
 
@@ -148,7 +149,7 @@ export default function PublicLayout({ children, showNav = true }) {
                 <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8">
                     <div className="space-y-3">
                         <Link to="/" className="flex items-center gap-2 font-heading font-bold text-lg text-bordeaux">
-                            <img src={logoUrl} alt="" className="w-7 h-7 object-contain rounded-md" />
+                            <LogoEglise className="w-7 h-7 object-contain rounded-md" />
                             <span>{parametres.nom}</span>
                         </Link>
                         <p className="text-sm text-bordeaux/80 max-w-xs">
