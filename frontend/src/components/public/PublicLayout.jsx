@@ -1,14 +1,23 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Menu, X, User, LogOut } from "lucide-react";
+import { Menu, X, User, LogOut, Facebook, Youtube, Instagram, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import logo from "@/images/logo.jpeg";
+import { useParametres } from "@/hooks/useParametres";
+
+// Icône associée à chaque réseau renseigné dans /dashboard/parametres.
+const ICONES_RESEAUX = {
+    facebook: Facebook,
+    youtube: Youtube,
+    instagram: Instagram,
+    site_web: Globe,
+};
 
 export default function PublicLayout({ children, showNav = true }) {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const { isAuthenticated, user, logout } = useAuth();
     const location = useLocation();
+    const { parametres, adresseComplete, reseaux, logoUrl } = useParametres();
 
     const navLinks = [
         { name: "Accueil", path: "/" },
@@ -33,8 +42,8 @@ export default function PublicLayout({ children, showNav = true }) {
             <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
                 <div className="container mx-auto px-4 flex h-16 items-center justify-between">
                     <Link to="/" className="flex items-center gap-2 font-heading font-bold text-xl text-bordeaux">
-                        <img src={logo} alt="Logo" className="w-8 h-8 object-contain rounded-md" />
-                        <span>Rehoboth Church</span>
+                        <img src={logoUrl} alt="" className="w-8 h-8 object-contain rounded-md" />
+                        <span>{parametres.nom}</span>
                     </Link>
 
                     {/* Desktop Nav */}
@@ -140,34 +149,67 @@ export default function PublicLayout({ children, showNav = true }) {
                 <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8">
                     <div className="space-y-3">
                         <Link to="/" className="flex items-center gap-2 font-heading font-bold text-lg text-bordeaux">
-                            <img src={logo} alt="Logo" className="w-7 h-7 object-contain rounded-md" />
-                            <span>Rehoboth Church</span>
+                            <img src={logoUrl} alt="" className="w-7 h-7 object-contain rounded-md" />
+                            <span>{parametres.nom}</span>
                         </Link>
                         <p className="text-sm text-bordeaux/80 max-w-xs">
-                            Une église internationale engagée à partager l'amour de Dieu et à faire grandir les disciples.
+                            {parametres.description ||
+                                "Une église internationale engagée à partager l'amour de Dieu et à faire grandir les disciples."}
                         </p>
+                        {reseaux.length > 0 && (
+                            <div className="flex items-center gap-3 pt-1">
+                                {reseaux.map(({ cle, label, url }) => {
+                                    const Icone = ICONES_RESEAUX[cle];
+                                    return (
+                                        <a
+                                            key={cle}
+                                            href={url}
+                                            target="_blank"
+                                            rel="noreferrer noopener"
+                                            aria-label={label}
+                                            title={label}
+                                            className="text-bordeaux/70 hover:text-bordeaux transition-colors"
+                                        >
+                                            <Icone className="w-5 h-5" />
+                                        </a>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
                     <div>
                         <h3 className="font-bold text-sm mb-3">Liens Rapides</h3>
                         <nav className="flex flex-col gap-2 text-sm text-bordeaux/80">
                             <Link to="/a-propos" className="hover:text-bordeaux hover:underline transition-colors">À Propos</Link>
-                            <Link to="/#extensions" className="hover:text-bordeaux hover:underline transition-colors">Extensions</Link>
                             <Link to="/evenements" className="hover:text-bordeaux hover:underline transition-colors">Événements</Link>
                             <Link to="/predications" className="hover:text-bordeaux hover:underline transition-colors">Prédications</Link>
                             <Link to="/don" className="hover:text-bordeaux hover:underline transition-colors">Faire un Don</Link>
                         </nav>
                     </div>
                     <div>
-                        <h3 className="font-bold text-sm mb-3">Contact & Cultes</h3>
-                        <p className="text-sm text-bordeaux/80 space-y-1">
-                            <span>Chaque dimanche à 10h00</span><br />
-                            <span>123 Avenue de la République, Paris</span><br />
-                            <a href="mailto:contact@rehoboth.org" className="hover:underline">contact@rehoboth.org</a>
-                        </p>
+                        <h3 className="font-bold text-sm mb-3">Contact &amp; Cultes</h3>
+                        <div className="text-sm text-bordeaux/80 space-y-1">
+                            {parametres.horaires && <p>{parametres.horaires}</p>}
+                            {adresseComplete && <p>{adresseComplete}</p>}
+                            {parametres.telephone && (
+                                <p>
+                                    <a href={`tel:${parametres.telephone.replace(/\s+/g, "")}`} className="hover:underline">
+                                        {parametres.telephone}
+                                    </a>
+                                </p>
+                            )}
+                            {parametres.email_contact && (
+                                <p>
+                                    <a href={`mailto:${parametres.email_contact}`} className="hover:underline">
+                                        {parametres.email_contact}
+                                    </a>
+                                </p>
+                            )}
+                        </div>
                     </div>
                 </div>
                 <div className="container mx-auto px-4 mt-8 pt-6 border-t border-bordeaux/20 text-center text-xs text-bordeaux/70">
-                    &copy; {new Date().getFullYear()} Rehoboth Church International. Tous droits réservés.
+                    &copy; {new Date().getFullYear()} {parametres.nom}. Tous droits réservés.
                 </div>
             </footer>
         </div>

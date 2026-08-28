@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/api/apiClient";
+import { PARAMETRES_QUERY_KEY } from "@/hooks/useParametres";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,8 +23,31 @@ const EMPTY = {
     horaires: "", 
     description: "", 
     vision: "", 
-    histoire: "" 
+    histoire: "", 
+    logo_url: "" 
 };
+
+/**
+ * Champ texte du formulaire.
+ *
+ * Défini au niveau du module, et non dans le corps de `Parametres` : une
+ * déclaration interne recrée le type du composant à chaque rendu, React
+ * démonte alors l'input et le champ perd le focus à chaque caractère saisi.
+ */
+function F({ label, field, type = "text", placeholder = "", value, onChange }) {
+    return (
+        <div className="space-y-1.5">
+            <Label className="text-xs font-bold uppercase tracking-wider text-gray-500">{label}</Label>
+            <Input
+                type={type}
+                placeholder={placeholder}
+                className="rounded-xl border-gray-205 h-11 focus:border-bordeaux focus:ring-bordeaux/20"
+                value={value || ""}
+                onChange={e => onChange(field, e.target.value)}
+            />
+        </div>
+    );
+}
 
 export default function Parametres() {
     const [form, setForm] = useState(EMPTY);
@@ -30,6 +55,12 @@ export default function Parametres() {
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
     const [loading, setLoading] = useState(true);
+    const queryClient = useQueryClient();
+
+    const setChamp = useCallback(
+        (field, value) => setForm(prev => ({ ...prev, [field]: value })),
+        []
+    );
 
     useEffect(() => {
         apiClient.entities.EgliseParametres.list()
@@ -52,6 +83,7 @@ export default function Parametres() {
                 const r = await apiClient.entities.EgliseParametres.create(form);
                 setRecordId(r.id);
             }
+            await queryClient.invalidateQueries({ queryKey: PARAMETRES_QUERY_KEY });
             setSaved(true);
             setTimeout(() => setSaved(false), 2000);
         } catch (err) {
@@ -61,19 +93,6 @@ export default function Parametres() {
             setSaving(false);
         }
     };
-
-    const F = ({ label, field, type = "text", placeholder = "" }) => (
-        <div className="space-y-1.5">
-            <Label className="text-xs font-bold uppercase tracking-wider text-gray-500">{label}</Label>
-            <Input 
-                type={type} 
-                placeholder={placeholder} 
-                className="rounded-xl border-gray-205 h-11 focus:border-bordeaux focus:ring-bordeaux/20"
-                value={form[field] || ""} 
-                onChange={e => setForm({ ...form, [field]: e.target.value })} 
-            />
-        </div>
-    );
 
     if (loading) {
         return (
@@ -132,14 +151,14 @@ export default function Parametres() {
                                 <CardDescription className="text-xs text-gray-500">Coordonnées de l'église affichées publiquement sur le site.</CardDescription>
                             </CardHeader>
                             <CardContent className="p-6 space-y-4">
-                                <F label="Nom officiel de l'église *" field="nom" placeholder="Ex: Rehoboth Church International" />
+                                <F label="Nom officiel de l'église *" field="nom" placeholder="Ex: Rehoboth Church International" value={form.nom} onChange={setChamp} />
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <F label="Adresse physique" field="adresse" placeholder="123 Rue de la Paix" />
-                                    <F label="Ville & Code Postal" field="ville" placeholder="75000 Paris" />
+                                    <F label="Adresse physique" field="adresse" placeholder="123 Rue de la Paix" value={form.adresse} onChange={setChamp} />
+                                    <F label="Ville & Code Postal" field="ville" placeholder="75000 Paris" value={form.ville} onChange={setChamp} />
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <F label="Téléphone officiel" field="telephone" placeholder="+33 1 23 45 67 89" />
-                                    <F label="Adresse Email de contact" field="email_contact" type="email" placeholder="contact@rehoboth.com" />
+                                    <F label="Téléphone officiel" field="telephone" placeholder="+33 1 23 45 67 89" value={form.telephone} onChange={setChamp} />
+                                    <F label="Adresse Email de contact" field="email_contact" type="email" placeholder="contact@rehoboth.com" value={form.email_contact} onChange={setChamp} />
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label className="text-xs font-bold uppercase tracking-wider text-gray-500">Logo de l'église (URL de l'image)</Label>
@@ -221,10 +240,10 @@ export default function Parametres() {
                                 <CardDescription className="text-xs text-gray-500">Réseaux sociaux et site web externe.</CardDescription>
                             </CardHeader>
                             <CardContent className="p-6 space-y-4">
-                                <F label="Site internet officiel" field="site_web" placeholder="https://www.rehoboth.org" />
-                                <F label="Page Facebook" field="facebook" placeholder="https://facebook.com/rehoboth" />
-                                <F label="Chaîne YouTube" field="youtube" placeholder="https://youtube.com/rehoboth" />
-                                <F label="Compte Instagram" field="instagram" placeholder="https://instagram.com/rehoboth" />
+                                <F label="Site internet officiel" field="site_web" placeholder="https://www.rehoboth.org" value={form.site_web} onChange={setChamp} />
+                                <F label="Page Facebook" field="facebook" placeholder="https://facebook.com/rehoboth" value={form.facebook} onChange={setChamp} />
+                                <F label="Chaîne YouTube" field="youtube" placeholder="https://youtube.com/rehoboth" value={form.youtube} onChange={setChamp} />
+                                <F label="Compte Instagram" field="instagram" placeholder="https://instagram.com/rehoboth" value={form.instagram} onChange={setChamp} />
                             </CardContent>
                         </Card>
                     </div>

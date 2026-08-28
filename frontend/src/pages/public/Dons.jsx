@@ -1,9 +1,12 @@
 import React from "react";
 import PublicLayout from "@/components/public/PublicLayout";
+import { useParametres } from "@/hooks/useParametres";
 import { Card, CardContent } from "@/components/ui/card";
 import { Heart, CreditCard, Building2 } from "lucide-react";
 
 export default function Don() {
+    const { parametres } = useParametres();
+
     return (
         <PublicLayout>
             <section className="py-16 px-4 max-w-3xl mx-auto">
@@ -22,7 +25,7 @@ export default function Don() {
                             <div className="bg-gray-50 rounded-lg p-3 space-y-1 text-sm font-mono">
                                 <p><span className="text-gray-400">IBAN :</span> FR76 3000 6000 0112 3456 7890 189</p>
                                 <p><span className="text-gray-400">BIC :</span> BNPAFRPPXXX</p>
-                                <p><span className="text-gray-400">Titulaire :</span> Rehoboth Church International</p>
+                                <p><span className="text-gray-400">Titulaire :</span> {parametres.nom}</p>
                             </div>
                         </CardContent>
                     </Card>

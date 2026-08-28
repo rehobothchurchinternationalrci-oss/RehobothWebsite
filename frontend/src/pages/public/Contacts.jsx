@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { apiClient } from "@/api/apiClient";
 import PublicLayout from "@/components/public/PublicLayout";
+import { useParametres } from "@/hooks/useParametres";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,19 +10,15 @@ import { Label } from "@/components/ui/label";
 import { MapPin, Phone, Mail, Send, CheckCircle } from "lucide-react";
 
 export default function Contact() {
-    const [parametres, setParametres] = useState(null);
+    const { parametres, adresseComplete } = useParametres();
     const [form, setForm] = useState({ nom: "", email: "", message: "" });
     const [sent, setSent] = useState(false);
     const [loading, setLoading] = useState(false);
 
-    useEffect(() => {
-        apiClient.entities.EgliseParametres.list().then(p => p.length && setParametres(p[0]));
-    }, []);
-
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
-        const destinationEmail = parametres?.email_contact || "contact@rehoboth.org";
+        const destinationEmail = parametres.email_contact;
         await apiClient.integrations.Core.SendEmail({
             to: destinationEmail,
             subject: `Message de contact de ${form.nom}`,
@@ -48,7 +45,7 @@ export default function Contact() {
                                 <div>
                                     <h4 className="font-semibold text-gray-800 text-sm">Adresse</h4>
                                     <p className="text-gray-600 text-sm mt-0.5">
-                                        {parametres?.adresse ? `${parametres.adresse}${parametres.ville ? `, ${parametres.ville}` : ""}` : "Girne, Chypre du Nord"}
+                                        {adresseComplete || "Adresse communiquée prochainement"}
                                     </p>
                                 </div>
                             </div>
@@ -60,7 +57,7 @@ export default function Contact() {
                                 <div>
                                     <h4 className="font-semibold text-gray-800 text-sm">Téléphone</h4>
                                     <p className="text-gray-600 text-sm mt-0.5">
-                                        {parametres?.telephone || "+90 533 123 45 67"}
+                                        {parametres.telephone || "Téléphone communiqué prochainement"}
                                     </p>
                                 </div>
                             </div>
@@ -72,9 +69,13 @@ export default function Contact() {
                                 <div>
                                     <h4 className="font-semibold text-gray-800 text-sm">Email</h4>
                                     <p className="text-gray-600 text-sm mt-0.5">
-                                        <a href={`mailto:${parametres?.email_contact || "contact@rehoboth.org"}`} className="hover:text-bordeaux hover:underline">
-                                            {parametres?.email_contact || "contact@rehoboth.org"}
-                                        </a>
+                                        {parametres.email_contact ? (
+                                            <a href={`mailto:${parametres.email_contact}`} className="hover:text-bordeaux hover:underline">
+                                                {parametres.email_contact}
+                                            </a>
+                                        ) : (
+                                            "Email communiqué prochainement"
+                                        )}
                                     </p>
                                 </div>
                             </div>

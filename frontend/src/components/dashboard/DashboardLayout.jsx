@@ -31,7 +31,7 @@ import { apiClient } from "@/api/apiClient";
 import config from "@/config";
 import { GENRES, avecCivilite } from "@/lib/civilite";
 import { Badge } from "@/components/ui/badge";
-import logo from "@/images/logo.jpeg";
+import { useParametres } from "@/hooks/useParametres";
 
 import {
     Sidebar,
@@ -61,6 +61,7 @@ import { Separator } from "@/components/ui/separator";
 
 export default function DashboardLayout({ children }) {
     const { user, logout, checkAuth } = useAuthStore();
+    const { parametres, logoUrl } = useParametres();
     const { isDark, toggle: toggleDarkMode } = useDarkMode();
     const location = useLocation();
     const isChef = user?.role === "CHEF_DEPARTEMENT";
@@ -209,10 +210,10 @@ export default function DashboardLayout({ children }) {
                     <SidebarHeader className="h-16 px-4 border-b border-sidebar-border flex flex-row items-center group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center">
                         <div className="flex items-center gap-2.5 min-w-0">
                             <div className="w-9 h-9 rounded-lg bg-background flex items-center justify-center overflow-hidden border border-border shrink-0">
-                                <img src={logo} alt="Logo Rehoboth" className="w-full h-full object-contain p-0.5" />
+                                <img src={logoUrl} alt="" className="w-full h-full object-contain p-0.5" />
                             </div>
                             <div className="flex flex-col min-w-0 group-data-[collapsible=icon]:hidden">
-                                <span className="font-heading font-black text-sm text-sidebar-foreground uppercase tracking-wide leading-none truncate">Rehoboth Church</span>
+                                <span className="font-heading font-black text-sm text-sidebar-foreground uppercase tracking-wide leading-none truncate">{parametres.nom}</span>
                                 {isChef && deptName ? (
                                     <span className="text-[9px] text-muted-foreground font-bold tracking-wider truncate max-w-[130px] mt-0.5">
                                         {deptName}

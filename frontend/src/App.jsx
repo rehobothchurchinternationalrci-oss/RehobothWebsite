@@ -20,7 +20,6 @@ const Predications = lazy(() => import('./pages/public/Predications'));
 const Departements = lazy(() => import('./pages/public/Departements'));
 const Contact = lazy(() => import('./pages/public/Contacts'));
 const Don = lazy(() => import('./pages/public/Dons'));
-const ExtensionAccueil = lazy(() => import('./pages/public/ExtensionAccueil'));
 const RejoindreDepartement = lazy(() => import('./pages/public/RejoindreDepartement'));
 
 // Dashboard pages
@@ -79,7 +78,6 @@ const AuthenticatedApp = () => {
       <Route path="/departements/:id/rejoindre" element={<RejoindreDepartement />} />
       <Route path="/contact" element={<Contact />} />
       <Route path="/don" element={<Don />} />
-      <Route path="/extensions/:slug" element={<ExtensionAccueil />} />
 
       {/* Dashboard - All Authenticated Users */}
       <Route element={<ProtectedRoute />}>

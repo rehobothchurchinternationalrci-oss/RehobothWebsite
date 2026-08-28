@@ -1,21 +1,17 @@
-import React, { useState, useEffect } from "react";
-import { apiClient } from "@/api/apiClient";
+import React from "react";
 import PublicLayout from "@/components/public/PublicLayout";
+import { useParametres } from "@/hooks/useParametres";
 import { Heart, Target, BookOpen, Mail, Phone } from "lucide-react";
 
 export default function APropos() {
-    const [parametres, setParametres] = useState(null);
-
-    useEffect(() => {
-        apiClient.entities.EgliseParametres.list().then(p => p.length && setParametres(p[0]));
-    }, []);
+    const { parametres } = useParametres();
 
     return (
         <PublicLayout>
             <section className="py-16 px-4 max-w-4xl mx-auto">
                 <h1 className="text-3xl md:text-4xl font-heading font-bold text-bordeaux mb-8 text-center">À propos de nous</h1>
 
-                {parametres?.description && (
+                {parametres.description && (
                     <div className="mb-12 text-lg text-gray-600 text-center">{parametres.description}</div>
                 )}
 
@@ -28,7 +24,7 @@ export default function APropos() {
                     <div className="text-center p-6 rounded-2xl bg-cream transition-transform duration-300 hover:scale-[1.03] hover:shadow-sm">
                         <Target className="w-10 h-10 text-bordeaux mx-auto mb-3" />
                         <h3 className="font-bold text-bordeaux text-lg mb-2">Notre vision</h3>
-                        <p className="text-gray-600 text-sm">{parametres?.vision || "Être une église transformée et transformante dans la ville."}</p>
+                        <p className="text-gray-600 text-sm">{parametres.vision || "Être une église transformée et transformante dans la ville."}</p>
                     </div>
                     <div className="text-center p-6 rounded-2xl bg-cream md:translate-y-8 transition-transform duration-300 hover:scale-[1.03] hover:shadow-sm">
                         <BookOpen className="w-10 h-10 text-bordeaux mx-auto mb-3" />
@@ -37,7 +33,7 @@ export default function APropos() {
                     </div>
                 </div>
 
-                {parametres?.histoire && (
+                {parametres.histoire && (
                     <div className="mb-16">
                         <h2 className="text-2xl font-heading font-bold text-bordeaux mb-4">Notre histoire</h2>
                         <p className="text-gray-600 leading-relaxed">{parametres.histoire}</p>
