@@ -1,0 +1,38 @@
+# Ce qui ne doit pas partir dans le paquet de la fonction serverless.
+# Chaque fichier inclus alourdit le bundle et rallonge le démarrage à froid.
+
+# Environnements et caches Python
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+# Secrets et fichiers locaux
+.env
+.env.*
+!.env.example
+
+# Outils de développement, jamais exécutés en production
+tests/
+scratch/
+data.ipynb
+README.md
+
+# Couche SQLAlchemy/Alembic inerte au runtime : l'application parle à Supabase
+# via PostgREST, db.init_app() n'est jamais appelé.
+migrations/
+repositories/sqlalchemy_repository.py
+
+# Scripts SQL : passés à la main dans l'éditeur Supabase, pas par le backend
+storage_buckets.sql
+
+# Configuration des autres plateformes
+Procfile
+railway.toml
+uv.lock
+
+# NB : `static/` est volontairement conservé — Flask y sert logo.jpeg, utilisé
+# dans les emails (voir routes/integrations.py).
