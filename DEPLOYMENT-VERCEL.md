@@ -53,8 +53,8 @@ rien ne change.
    SUPABASE_URL=https://xxxx.supabase.co
    SUPABASE_SERVICE_ROLE_KEY=<clé service_role>
    FLASK_ENV=production
-   FRONTEND_URL=https://<frontend>.vercel.app
-   CORS_ORIGINS=https://<frontend>.vercel.app
+   FRONTEND_URL=https://rehoboth-website-three.vercel.app
+   CORS_ORIGINS=https://rehoboth-website-three.vercel.app
    RESEND_API_KEY=<clé Resend>
    RESEND_FROM_EMAIL=noreply@votre-domaine.org
    CHURCH_CONTACT_EMAIL=contact@votre-domaine.org
@@ -129,7 +129,7 @@ exactement la même application.
 4. **Environment Variables** :
 
    ```text
-   VITE_API_BASE_URL=https://<backend>.vercel.app/api
+   VITE_API_BASE_URL=https://rehoboth-website-kit8.vercel.app/api
    VITE_APP_VERSION=1.0.0
    ```
 
@@ -162,8 +162,8 @@ Les deux projets ont des domaines différents, donc le navigateur applique le
 CORS. Une fois le domaine du frontend connu, revenir sur le projet **backend** :
 
 ```text
-CORS_ORIGINS=https://<frontend>.vercel.app
-FRONTEND_URL=https://<frontend>.vercel.app
+CORS_ORIGINS=https://rehoboth-website-three.vercel.app
+FRONTEND_URL=https://rehoboth-website-three.vercel.app
 ```
 
 Puis **redéployer le backend** pour que les nouvelles variables prennent effet.
@@ -181,12 +181,37 @@ CORS_ORIGINS=https://rehoboth.vercel.app,https://www.rehoboth.org
 > pas de joker `*.vercel.app`, cela autoriserait n'importe quel projet Vercel
 > du monde à appeler votre API.
 
+### Les liens des emails — à régler côté Supabase aussi
+
+`FRONTEND_URL` ne suffit pas. La réinitialisation de mot de passe appelle :
+
+```python
+reset_password_for_email(email, {"redirect_to": f"{Config.FRONTEND_URL}/reset-password"})
+```
+
+mais **Supabase ignore silencieusement `redirect_to` si l'URL n'est pas dans sa
+liste blanche** et renvoie vers le *Site URL* du projet. Dans
+Supabase → **Authentication → URL Configuration** :
+
+| Champ | Valeur |
+| --- | --- |
+| Site URL | `https://rehoboth-website-three.vercel.app` |
+| Redirect URLs | `https://rehoboth-website-three.vercel.app/reset-password` |
+
+Tant que ces deux champs restent sur `localhost`, les mails de réinitialisation
+et d'intégration des chefs de département contiennent des liens morts pour tout
+le monde.
+
+Enfin, le SMTP intégré de Supabase est limité à quelques messages par heure. Le
+projet a déjà une clé Resend : pour un usage réel, configurer un SMTP
+personnalisé dans **Authentication → Emails → SMTP Settings**.
+
 ### Option : supprimer le CORS entièrement
 
 Ajouter une réécriture dans `frontend/vercel.json` :
 
 ```json
-{ "source": "/api/:chemin*", "destination": "https://<backend>.vercel.app/api/:chemin*" }
+{ "source": "/api/:chemin*", "destination": "https://rehoboth-website-kit8.vercel.app/api/:chemin*" }
 ```
 
 puis poser `VITE_API_BASE_URL=/api`. Le navigateur ne voit plus qu'une seule
@@ -199,27 +224,27 @@ supplémentaire par requête. À considérer si les previews vous sont utiles.
 
 ```bash
 # Backend en vie (liveness)
-curl https://<backend>.vercel.app/api/health
+curl https://rehoboth-website-kit8.vercel.app/api/health
 # → {"status":"healthy","environment":"production"}
 
 # Backend prêt (readiness : config + Supabase)
-curl https://<backend>.vercel.app/api/health/ready
+curl https://rehoboth-website-kit8.vercel.app/api/health/ready
 # → {"status":"healthy","checks":{...}}
 
 # Fichier statique servi par Flask (utilisé dans les emails)
-curl -I https://<backend>.vercel.app/static/logo.jpeg
+curl -I https://rehoboth-website-kit8.vercel.app/static/logo.jpeg
 # → 200, Content-Type: image/jpeg
 
 # Frontend servi
-curl -I https://<frontend>.vercel.app/
+curl -I https://rehoboth-website-three.vercel.app/
 # → 200
 
 # Fallback SPA sur une route profonde
-curl -I https://<frontend>.vercel.app/dashboard/membres
+curl -I https://rehoboth-website-three.vercel.app/dashboard/membres
 # → 200 (et non 404)
 
 # En-têtes de sécurité présents
-curl -sI https://<frontend>.vercel.app/ | grep -i "x-content-type\|x-frame\|referrer"
+curl -sI https://rehoboth-website-three.vercel.app/ | grep -i "x-content-type\|x-frame\|referrer"
 ```
 
 Puis, dans le navigateur, ouvrir le site et vérifier dans l'onglet *Network*
