@@ -11,17 +11,30 @@ export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
     setLoading(true);
     try {
       await authService.forgotPassword(email);
-    } catch {
-      // Always show success regardless (security best practice)
+      setSent(true);
+    } catch (err) {
+      // Whether an account exists stays hidden: the API answers 200 either
+      // way, so the confirmation below is deliberately non-committal.
+      //
+      // Errors about the REQUEST itself are a different matter and used to be
+      // swallowed here, showing "check your inbox" for a mail that would never
+      // be sent — a rejected address format, or a rate-limited attempt, left
+      // the visitor waiting forever. Neither reveals anything about an account.
+      if (err.status === 400 || err.status === 429) {
+        setError(err.message);
+      } else {
+        setError("Unable to send the reset email right now. Please try again in a moment.");
+      }
     } finally {
       setLoading(false);
-      setSent(true);
     }
   };
 
@@ -42,6 +55,11 @@ export default function ForgotPassword() {
         </p>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm" role="alert">
+              {error}
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="email">Email address</Label>
             <div className="relative">

@@ -30,6 +30,17 @@ def _message_identifiants(err: ValidationError) -> str:
     if "password" in champs:
         return "Mot de passe requis."
     if "email" in champs:
+        # Les domaines réservés (.test, .local, .invalid, .example) sont rejetés
+        # par le validateur : ils ne peuvent recevoir aucun courrier. C'est le
+        # cas des adresses de démonstration laissées en base, et le message
+        # générique « vérifiez votre saisie » envoyait chercher une faute de
+        # frappe qui n'existait pas.
+        detail = " ".join(e.get("msg", "") for e in err.errors())
+        if "special-use or reserved name" in detail:
+            return (
+                "Ce domaine est réservé et ne peut recevoir aucun email "
+                "(.test, .local, .invalid, .example). Utilisez une adresse réelle."
+            )
         return "Adresse email invalide. Vérifiez votre saisie (exemple : nom@domaine.com)."
     return "Requête invalide."
 
