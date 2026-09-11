@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { authService } from "@/services/auth/authService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,9 +7,37 @@ import { Label } from "@/components/ui/label";
 import { Lock, Loader2, AlertTriangle } from "lucide-react";
 import AuthLayout from "@/components/auth/AuthLayout";
 
+/**
+ * Supabase returns the recovery outcome in the URL FRAGMENT, never in the
+ * query string — which is why `useSearchParams().get("token")` always came
+ * back null and every valid link was rejected as invalid.
+ *
+ *   success: #access_token=...&refresh_token=...&type=recovery
+ *   failure: #error=access_denied&error_code=otp_expired&error_description=...
+ *
+ * The fragment never reaches the server, so it has to be read client-side.
+ */
+function readRecoveryFragment() {
+  const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  return {
+    accessToken: params.get("access_token"),
+    errorCode: params.get("error_code"),
+    errorDescription: params.get("error_description"),
+  };
+}
+
 export default function ResetPassword() {
-  const [searchParams] = useSearchParams();
-  const resetToken = searchParams.get("token");
+  // Read once, before the effect below wipes the fragment.
+  const [recovery] = useState(readRecoveryFragment);
+  const resetToken = recovery.accessToken;
+
+  // A recovery JWT in the address bar ends up in browsing history and in the
+  // Referer of any outbound request. Strip it as soon as it has been read.
+  useEffect(() => {
+    if (window.location.hash) {
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, []);
 
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -38,8 +66,12 @@ export default function ResetPassword() {
     return (
       <AuthLayout
         icon={AlertTriangle}
-        title="Invalid reset link"
-        subtitle="This password reset link is missing or invalid"
+        title={recovery.errorCode === "otp_expired" ? "Link expired" : "Invalid reset link"}
+        subtitle={
+          recovery.errorCode === "otp_expired"
+            ? "This password reset link is no longer valid"
+            : "This password reset link is missing or invalid"
+        }
         footer={
           <Link to="/forgot-password" className="text-primary font-medium hover:underline">
             Request a new link
@@ -47,8 +79,15 @@ export default function ResetPassword() {
         }
       >
         <p className="text-sm text-foreground text-center">
-          The link you used appears to be incomplete. Please request a new password reset email.
+          {recovery.errorCode === "otp_expired"
+            ? "Reset links can only be used once, and expire after a short while. Request a new one — and open it in the same browser, without forwarding the email."
+            : "The link you used appears to be incomplete. Please request a new password reset email."}
         </p>
+        {recovery.errorDescription && (
+          <p className="mt-3 text-xs text-muted-foreground text-center">
+            {recovery.errorDescription}
+          </p>
+        )}
       </AuthLayout>
     );
   }

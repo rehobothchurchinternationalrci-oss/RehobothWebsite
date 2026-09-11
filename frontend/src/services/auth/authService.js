@@ -51,13 +51,22 @@ export const authService = {
   },
 
   /**
-   * Reset the password using the token from the reset email.
+   * Reset the password using the recovery token from the reset email.
+   *
+   * `accessToken` is the Supabase recovery JWT found in the URL fragment of
+   * the link. The backend route is protected by @token_required and derives
+   * the user from that JWT, so it must travel in the Authorization header —
+   * not in the body. `requiresAuth: false` keeps the client from overriding it
+   * with the stale localStorage token: the visitor is not logged in here.
    */
-  async resetPassword(resetToken, newPassword) {
+  async resetPassword(accessToken, newPassword) {
     const res = await httpClient.post(
       ENDPOINTS.AUTH.RESET_PASSWORD,
-      { reset_token: resetToken, new_password: newPassword },
-      { requiresAuth: false },
+      { new_password: newPassword },
+      {
+        requiresAuth: false,
+        headers: { Authorization: `Bearer ${accessToken}` },
+      },
     );
     return res && res.success !== undefined ? res.data : res;
   },
