@@ -102,9 +102,18 @@ utiles : il ajoute le dossier parent au `sys.path` puis réexporte l'application
 de `app.py`. Le runtime Python de Vercel repère la variable `app` (WSGI) et lui
 transmet la requête.
 
-La réécriture de [`backend/vercel.json`](backend/vercel.json) envoie **toutes**
-les URL vers cette fonction, en conservant le chemin d'origine — Flask route
-ensuite `/api/health`, `/api/membres`, `/static/logo.jpeg` comme d'habitude.
+Le routage de [`backend/vercel.json`](backend/vercel.json) envoie **toutes** les
+URL vers cette fonction en conservant le chemin d'origine — Flask route ensuite
+`/api/health`, `/api/membres`, `/static/logo.jpeg` comme d'habitude.
+
+> **Pourquoi `builds`/`routes` et non `rewrites`.** La configuration moderne
+> `{"rewrites": [{"source": "/(.*)", "destination": "/api/index"}]}` a été
+> essayée en premier : elle déploie sans erreur, mais la fonction ne reçoit pas
+> le chemin demandé. Flask répondait 404 sur **tout**, y compris
+> `/static/logo.jpeg` qu'il sert pourtant nativement — preuve que le chemin
+> d'origine était perdu. Le couple `builds` + `routes` avec `dest` pointant sur
+> le fichier préserve l'URL entrante. C'est de la configuration héritée, mais
+> c'est celle qui fonctionne pour une application WSGI montée à la racine.
 
 `app.py` reste donc la source unique : gunicorn en local et Vercel démarrent
 exactement la même application.
@@ -279,8 +288,11 @@ exposées. En cas de coupure, relever la limite dans `backend/vercel.json` :
 
 ```json
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "/api/index" }],
-  "functions": { "api/index.py": { "maxDuration": 60 } }
+  "version": 2,
+  "builds": [
+    { "src": "api/index.py", "use": "@vercel/python", "config": { "maxDuration": 60 } }
+  ],
+  "routes": [{ "src": "/(.*)", "dest": "api/index.py" }]
 }
 ```
 
