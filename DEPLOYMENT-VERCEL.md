@@ -202,6 +202,24 @@ Tant que ces deux champs restent sur `localhost`, les mails de réinitialisation
 et d'intégration des chefs de département contiennent des liens morts pour tout
 le monde.
 
+**Le port du lien reçu dit laquelle des deux causes est en jeu :**
+
+| Lien reçu | Cause | Correctif |
+| --- | --- | --- |
+| `localhost:5173/reset-password` | `FRONTEND_URL` absent sur la plateforme — le backend retombe sur sa valeur par défaut | définir la variable, puis redéployer |
+| `localhost:3000` ou autre | Supabase a ignoré `redirect_to` (URL hors liste blanche) et utilisé son *Site URL* | remplir les deux champs ci-dessus |
+
+Le premier cas se vérifie sans lire les variables de la plateforme :
+
+```bash
+curl -s https://rehoboth-website-kit8.vercel.app/api/health/ready | grep -o '"frontend_url":{[^}]*}'
+```
+
+`/api/health/ready` expose la valeur effective de `FRONTEND_URL` et la signale
+en `"status":"warning"` si elle reste locale en production. C'est un
+avertissement, pas une erreur : le code HTTP reste 200, faire échouer le
+healthcheck pour des liens d'email déclencherait des rollbacks inutiles.
+
 Enfin, le SMTP intégré de Supabase est limité à quelques messages par heure. Le
 projet a déjà une clé Resend : pour un usage réel, configurer un SMTP
 personnalisé dans **Authentication → Emails → SMTP Settings**.

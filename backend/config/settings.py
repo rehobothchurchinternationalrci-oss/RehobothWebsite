@@ -32,6 +32,26 @@ class Config:
         if origin.strip()
     ] or ["*"]
 
+    # Hotes consideres comme locaux : un FRONTEND_URL reste sur l'un d'eux en
+    # production signifie que la variable n'a pas ete definie sur la plateforme.
+    _HOTES_LOCAUX = {"localhost", "127.0.0.1", "0.0.0.0", "::1", "[::1]"}
+
+    @classmethod
+    def frontend_url_est_local(cls) -> bool:
+        """Le site public pointe-t-il encore vers une adresse de developpement ?
+
+        Sert au diagnostic exposé par /api/health/ready : une valeur locale en
+        production ne casse pas l'application, mais rend morts tous les liens
+        envoyés par email (réinitialisation de mot de passe, onboarding des
+        chefs de département), sans qu'aucune erreur ne le signale.
+        """
+        from urllib.parse import urlparse
+        try:
+            hote = (urlparse(cls.FRONTEND_URL).hostname or "").lower()
+        except ValueError:
+            return False
+        return hote in cls._HOTES_LOCAUX
+
     @classmethod
     def validate(cls):
         missing = []

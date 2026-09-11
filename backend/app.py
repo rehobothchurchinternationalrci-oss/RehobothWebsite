@@ -71,6 +71,26 @@ def create_app(test_config=None):
             checks["supabase"] = {"status": "error", "detail": str(e)}
             status_code = 503
 
+        # Diagnostic non bloquant. Un FRONTEND_URL resté sur localhost en
+        # production ne casse rien côté API : le site répond, les données
+        # circulent. Mais tous les liens envoyés par email pointent dans le
+        # vide, et rien ne le signale — d'où cette exposition ici, qui permet
+        # de le vérifier depuis l'extérieur sans lire les variables de la
+        # plateforme. Volontairement un avertissement et non une erreur : faire
+        # échouer le healthcheck pour ça déclencherait des rollbacks inutiles.
+        checks["frontend_url"] = {"status": "ok", "valeur": Config.FRONTEND_URL}
+        if Config.FLASK_ENV == "production" and Config.frontend_url_est_local():
+            checks["frontend_url"] = {
+                "status": "warning",
+                "valeur": Config.FRONTEND_URL,
+                "detail": (
+                    "FRONTEND_URL pointe vers une adresse locale en production : "
+                    "les liens de reinitialisation de mot de passe et d'onboarding "
+                    "envoyes par email seront morts. Definir la variable sur l'URL "
+                    "publique du site."
+                ),
+            }
+
         healthy = status_code == 200
         return jsonify({
             "status": "healthy" if healthy else "unhealthy",
