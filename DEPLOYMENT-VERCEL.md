@@ -64,6 +64,37 @@ rien ne change.
    > Ne **pas** définir `PORT` : la notion n'existe pas en serverless.
    > `GUNICORN_*` ne sert à rien non plus ici, gunicorn n'est pas utilisé.
 
+### Pourquoi pip et non uv
+
+Vercel choisit son installateur d'après les fichiers trouvés à la racine du
+projet : avec un `pyproject.toml`, il lance `uv sync --locked` ; sinon il
+installe `requirements.txt` avec pip.
+
+Le premier chemin échoue ici :
+
+```text
+Warning: Python version "3.11" detected in backend/.python-version
+         is not installed and will be ignored.
+Using python version: 3.12
+error: No interpreter found for Python 3.11 in managed installations
+```
+
+`.python-version` demande 3.11, absent de l'image de build (qui fournit 3.12).
+Vercel l'ignore pour son propre choix, mais uv le lit et refuse de continuer.
+Et même corrigé, `uv sync --locked` exigerait `uv.lock`, que
+[`.vercelignore`](backend/.vercelignore) écarte du paquet.
+
+[`backend/.vercelignore`](backend/.vercelignore) écarte donc `pyproject.toml`,
+`uv.lock` et `.python-version` : Vercel retombe sur `requirements.txt` + pip,
+en Python 3.12. C'est déjà la référence du déploiement — Railway/Nixpacks
+installe depuis ce fichier, et `pyproject.toml` indique lui-même devoir rester
+aligné dessus. **Le développement local n'est pas touché** : uv continue d'y
+lire `pyproject.toml` et `.python-version` normalement.
+
+> Si vous ajoutez une dépendance, mettez à jour **`requirements.txt`** en plus
+> de `pyproject.toml`, sinon elle manquera en production — sur Vercel comme
+> sur Railway.
+
 ### Comment ça s'articule
 
 [`backend/api/index.py`](backend/api/index.py) est un adaptateur de six lignes
