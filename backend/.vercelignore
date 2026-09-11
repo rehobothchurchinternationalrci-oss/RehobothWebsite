@@ -31,7 +31,25 @@ storage_buckets.sql
 # Configuration des autres plateformes
 Procfile
 railway.toml
+
+# Outillage uv, volontairement écarté du build Vercel.
+#
+# Vercel choisit son installateur d'après les fichiers présents : avec
+# pyproject.toml il lance `uv sync --locked`, sinon il installe
+# requirements.txt avec pip. On veut pip, pour deux raisons :
+#
+#   - `.python-version` demande Python 3.11, que l'image de build Vercel n'a
+#     pas (elle fournit 3.12). uv refuse alors de créer l'environnement :
+#     "No interpreter found for Python 3.11".
+#   - `uv sync --locked` exige uv.lock, que ce fichier écarte de toute façon
+#     du paquet de la fonction.
+#
+# requirements.txt est déjà la référence du déploiement (Railway/Nixpacks
+# l'utilise), et pyproject.toml dit lui-même devoir rester aligné dessus.
+# Le développement local n'est pas affecté : uv continue d'y lire ces fichiers.
+pyproject.toml
 uv.lock
+.python-version
 
 # NB : `static/` est volontairement conservé — Flask y sert logo.jpeg, utilisé
 # dans les emails (voir routes/integrations.py).
