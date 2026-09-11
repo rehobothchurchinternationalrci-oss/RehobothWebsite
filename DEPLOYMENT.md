@@ -1,5 +1,9 @@
 # Déploiement sur Railway
 
+> Pour un déploiement sur Vercel à la place, voir
+> [DEPLOYMENT-VERCEL.md](DEPLOYMENT-VERCEL.md). Les deux configurations
+> coexistent dans le dépôt et n'interfèrent pas.
+
 Le dépôt est un monorepo. Il se déploie en **deux services Railway** distincts,
 tous deux construits à partir du même repo GitHub mais avec un *Root Directory*
 différent :

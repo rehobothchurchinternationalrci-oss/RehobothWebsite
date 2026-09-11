@@ -21,10 +21,9 @@ scratch/
 data.ipynb
 README.md
 
-# Couche SQLAlchemy/Alembic inerte au runtime : l'application parle à Supabase
-# via PostgREST, db.init_app() n'est jamais appelé.
+# Dossier Alembic inerte : l'application parle à Supabase via PostgREST, aucune
+# migration n'est jouée depuis le backend (elles passent par l'éditeur SQL).
 migrations/
-repositories/sqlalchemy_repository.py
 
 # Scripts SQL : passés à la main dans l'éditeur Supabase, pas par le backend
 storage_buckets.sql
