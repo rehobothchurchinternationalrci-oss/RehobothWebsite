@@ -1,8 +1,16 @@
 # Déploiement sur Vercel
 
-Alternative à [DEPLOYMENT.md](DEPLOYMENT.md) (Railway). Les deux configurations
-coexistent dans le dépôt : les fichiers `railway.toml` / `railway.json` /
-`Procfile` / `Dockerfile` restent en place et n'interfèrent pas avec Vercel.
+Alternative à [DEPLOYMENT.md](DEPLOYMENT.md) (Railway). Les fichiers de
+configuration des deux plateformes cohabitent sans interférer : Vercel ne lit
+que `vercel.json`, Railway que `railway.toml` / `railway.json`.
+
+> ⚠️ **Le chemin Railway du frontend est actuellement cassé.**
+> `frontend/nginx.conf.template` a été supprimé, alors que `frontend/Dockerfile`
+> le copie toujours (ligne 29) : le build Docker échouerait. Deux sorties, au
+> choix — supprimer `frontend/Dockerfile` et `frontend/railway.json` si Railway
+> est abandonné pour le frontend, ou restaurer le template
+> (`git checkout 20e5013^ -- frontend/nginx.conf.template`) pour garder
+> Railway en repli. Le **backend** sur Railway, lui, reste intact.
 
 Le dépôt est un monorepo. Il se déploie en **deux projets Vercel** distincts,
 construits depuis le même repo GitHub mais avec un *Root Directory* différent :

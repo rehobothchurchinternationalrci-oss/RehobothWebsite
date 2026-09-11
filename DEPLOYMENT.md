@@ -1,8 +1,14 @@
 # Déploiement sur Railway
 
 > Pour un déploiement sur Vercel à la place, voir
-> [DEPLOYMENT-VERCEL.md](DEPLOYMENT-VERCEL.md). Les deux configurations
-> coexistent dans le dépôt et n'interfèrent pas.
+> [DEPLOYMENT-VERCEL.md](DEPLOYMENT-VERCEL.md). Les configurations des deux
+> plateformes cohabitent sans interférer.
+>
+> ⚠️ **La section 2 (service frontend) ne fonctionne plus en l'état.**
+> `frontend/nginx.conf.template` a été supprimé alors que `frontend/Dockerfile`
+> le copie toujours : le build échoue. Le restaurer avec
+> `git checkout 20e5013^ -- frontend/nginx.conf.template` pour réactiver ce
+> chemin. Le service backend n'est pas concerné.
 
 Le dépôt est un monorepo. Il se déploie en **deux services Railway** distincts,
 tous deux construits à partir du même repo GitHub mais avec un *Root Directory*
